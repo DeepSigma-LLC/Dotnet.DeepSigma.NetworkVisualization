@@ -110,14 +110,21 @@ MsaglLayouts.Register();
 
 ## 6. Import data
 
+Three ways in. Same `Network` out.
+
+### 6a. Core JSON
+
 ```csharp
 using DeepSigma.NetworkVisualization.Importers;
 
-// Core JSON (round-trips with NetworkJsonSerializer.Serialize)
-Network a = NetworkImporter.FromJson(jsonString);
+// Round-trips with NetworkJsonSerializer.Serialize
+Network net = NetworkImporter.FromJson(jsonString);
+```
 
-// CSV
-Network b = NetworkImporter.FromCsv(
+### 6b. CSV
+
+```csharp
+Network net = NetworkImporter.FromCsv(
     nodesCsv: """
     id,label,color,team
     alice,Alice,#FF0000,sales
@@ -129,9 +136,35 @@ Network b = NetworkImporter.FromCsv(
     """);
 ```
 
-CSV column conventions:
+Column conventions:
 - **Nodes** require `id`. Optional: `label`, `color`/`fill`, `group`. Every other column becomes a `Node.Data` entry.
 - **Edges** require `source` and `target`. Optional: `id`, `label`, `weight`.
+
+### 6c. A runtime .NET object
+
+Reflection-walks the object's public properties. User-defined types become nodes; framework types (`string`, `DateTime`, `Guid`, primitives, enums, …) become labeled value leaves; collections become group containers; reference cycles are detected and rendered as dashed `ref` edges.
+
+```csharp
+var customer = repository.GetCustomer(id);
+Network net = NetworkImporter.FromObject(customer);
+```
+
+Knobs for depth, breadth, what counts as a "leaf", and per-property filtering:
+
+```csharp
+Network net = NetworkImporter.FromObject(customer, new ObjectGraphOptions
+{
+    MaxDepth = 8,                  // recursion cap (default 5)
+    MaxCollectionItems = 50,       // per-collection cap (default 100)
+    MaxStringLength = 120,         // truncate long string values (default 80)
+    IncludeNullValues = true,      // render null properties (default false)
+    RootLabel = "My Root",         // override the root node's label
+    PropertyFilter = p => p.Name != "Password" && !p.Name.StartsWith("Internal"),
+    IsLeafType = t => t == typeof(byte[]),  // override the default leaf rules
+});
+```
+
+By default everything in `System.*`/`Microsoft.*` namespaces (plus `string`, primitives, `DateTime`, `Guid`, `decimal`, enums, `Uri`, `Version`) is treated as a leaf — so `DateTime`'s 12 properties don't explode into noise. User types get walked.
 
 ## 7. Register a new renderer
 

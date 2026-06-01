@@ -60,9 +60,8 @@ flowchart LR
 
 ```
 src/
-├── DeepSigma.NetworkVisualization.Core               # types, fluent builder, JSON contract, layouts
+├── DeepSigma.NetworkVisualization.Core               # types, fluent builder, JSON contract, layouts, importers (FromJson / FromCsv / FromObject)
 ├── DeepSigma.NetworkVisualization.Layout.Msagl       # MSAGL adapter (Sugiyama / MDS via NuGet)
-├── DeepSigma.NetworkVisualization.Importers          # NetworkImporter.FromJson + FromCsv
 ├── DeepSigma.NetworkVisualization.Renderers.Mermaid
 ├── DeepSigma.NetworkVisualization.Renderers.Dot
 ├── DeepSigma.NetworkVisualization.Renderers.Svg
@@ -75,7 +74,7 @@ src/
     ├── deepsigma-network-core                        # TypeScript types mirroring the JSON contract
     └── deepsigma-network-react                       # React components: ReactFlowNetwork, CytoscapeNetwork, D3Network, SigmaNetwork, MermaidNetwork, DotNetwork
 
-samples/DeepSigma.NetworkVisualization.Samples        # OrgChart, Pipeline, SocialNetwork, Clusters, RadialTaxonomy
+samples/DeepSigma.NetworkVisualization.Samples        # OrgChart, Pipeline, SocialNetwork, Clusters, RadialTaxonomy, ObjectGraphSample
 test/DeepSigma.NetworkVisualization.Tests             # xUnit v3
 demo/DeepSigma.NetworkVisualization.Demo.Web          # ASP.NET minimal API host
 demo/demo-react                                        # Vite + React frontend (interactive viewer + editor + import UI)
@@ -98,7 +97,7 @@ That single command starts:
 | http://localhost:5173     | Vite dev server with HMR — open this for the demo         |
 
 The demo includes:
-- **5 sample networks** (Org Chart, CI/CD Pipeline, Social Network, Service Topology, Knowledge Taxonomy)
+- **6 sample networks** (Org Chart, CI/CD Pipeline, Social Network, Service Topology, Knowledge Taxonomy, and **Object Graph: Customer** — a live C# object hierarchy reflected into a network, exercises cycle detection)
 - **9 view tabs** per sample (ReactFlow / Cytoscape.js / D3 / Sigma.js / Mermaid / GraphViz DOT / SVG / PNG / Core JSON)
 - **Interactive selection** — click any node in an interactive renderer; the sidebar shows its data payload
 - **Theme toggle** — light/dark, switches the entire render server-side
@@ -156,6 +155,8 @@ The demo will automatically expose `GET /api/samples/{name}/myformat`. See **[AR
 
 ## Importing data
 
+Three opinionated entry points. Same `Network` result; pick the one that matches what you actually have.
+
 ```csharp
 using DeepSigma.NetworkVisualization.Importers;
 
@@ -166,9 +167,25 @@ var net = NetworkImporter.FromJson(jsonString);
 var net = NetworkImporter.FromCsv(
     nodesCsv: "id,label,color\na,Alice,#FF0000\nb,Bob,#00FF00",
     edgesCsv: "source,target,label\na,b,knows");
+
+// 3) A runtime .NET object — walk its public properties, follow references,
+//    render the resulting hierarchy. Cycles are detected and shown as dashed edges.
+var net = NetworkImporter.FromObject(customer);
 ```
 
-We deliberately don't ship importers for D3/Cytoscape/Graphology/Gephi JSON dialects. Real-world data usually arrives from a database, a domain object, or a custom format — the mapping is the caller's concern. **One documented JSON shape + CSV** covers the practical case without the maintenance burden of chasing every ecosystem's JSON variant.
+`FromObject` is the introspection tool — pass a `Customer`, `Order`, configuration object, ORM-hydrated graph, anything. It treats framework types (`DateTime`, `Guid`, `string`, `List<T>` items, …) as leaf values, walks user-defined types as sub-nodes, renders collections as group containers, and detects reference cycles. Knobs via `ObjectGraphOptions`:
+
+```csharp
+var net = NetworkImporter.FromObject(myObject, new ObjectGraphOptions {
+    MaxDepth = 8,                  // recursion cap
+    MaxCollectionItems = 50,       // per-collection cap
+    IncludeNullValues = true,
+    PropertyFilter = p => p.Name != "Password",   // skip noisy/sensitive properties
+    IsLeafType = t => t == typeof(byte[]),        // override what counts as a leaf
+});
+```
+
+We deliberately don't ship importers for D3/Cytoscape/Graphology/Gephi JSON dialects. Real-world data arrives from a database, a domain object, a custom API response, or a CSV export — the mapping is the caller's concern. **Documented JSON + CSV + reflection over runtime objects** covers the practical case without the maintenance burden of chasing every ecosystem's JSON variant.
 
 ## Running tests
 

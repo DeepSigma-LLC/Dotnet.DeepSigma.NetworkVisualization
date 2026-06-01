@@ -18,7 +18,7 @@ flowchart LR
 - **N renderers** — each one knows how to project a `Network` into a specific consumer's expected shape (Mermaid syntax, ReactFlow JSON, Sigma's Graphology format, raw PNG, …). Renderers are independent; you can ship a new one without touching anything else.
 - **N layout providers** — each one knows how to assign positions. They live in a registry keyed by `LayoutAlgorithm` so adapters (e.g. MSAGL) can plug in without Core knowing about them.
 
-The intentional asymmetry between input and output: **N renderers** because users consciously *choose* their viz library; **only 2 importers** (JSON + CSV) because users don't choose a file format — they have data in some shape and have to map it. We document one shape (Core JSON) and let callers map to it.
+The intentional asymmetry between input and output: **N renderers** because users consciously *choose* their viz library; **3 import entry points** (Core JSON, CSV, reflection over a runtime object) because users don't choose a file format — they have data in some shape (file, table, live object) and have to map it. We document one JSON schema, one CSV convention, and one reflection walker; that covers the practical surface without trying to read every ecosystem's JSON variant.
 
 ## The plugin pattern
 
@@ -40,6 +40,7 @@ src/DeepSigma.NetworkVisualization.Core
     ├── Network, Node, Edge, Group, Color, Position …      ← canonical model
     ├── Builders/                                          ← fluent NetworkBuilder + sub-builders
     ├── Json/NetworkJsonSerializer                         ← canonical JSON envelope
+    ├── Importers/                                         ← NetworkImporter facade, CsvImporter, ObjectGraphImporter
     ├── Layouts/                                           ← built-in providers + LayoutProviders registry
     └── Rendering/
         ├── INetworkRenderer<TOutput>                      ← renderer interface
@@ -51,7 +52,6 @@ src/DeepSigma.NetworkVisualization.Core
         └── CoreJsonServiceCollectionExtensions
 
 src/DeepSigma.NetworkVisualization.Layout.Msagl           ← MSAGL adapter, registers Sugiyama/MDS via MsaglLayouts.Register()
-src/DeepSigma.NetworkVisualization.Importers              ← NetworkImporter facade + CsvImporter
 src/DeepSigma.NetworkVisualization.Renderers.<Name>       ← one csproj per renderer; pattern repeats
 
 samples/DeepSigma.NetworkVisualization.Samples            ← shared sample networks (consumed by demo + tests)
@@ -89,15 +89,15 @@ Framework-neutral discriminator: `TextOutput(string, mime)` or `BinaryOutput(byt
 
 Providers implement `Network ApplyLayout(Network)`. The registry maps `LayoutAlgorithm` → factory function; `LayoutProviders.Register(algorithm, factory)` lets adapters override the default. `Network.EnsureLayout()` is the extension method renderers call when they need positions and the network doesn't have any.
 
-### `NetworkImporter` (Importers, `NetworkImporter.cs`)
+### `NetworkImporter` (Core, `Importers/NetworkImporter.cs`)
 
-Two methods: `FromJson(string)` and `FromCsv(string, string)`. That's the entire public surface for inbound data. No format detection, no plugin pattern — by design.
+Three methods: `FromJson(string)`, `FromCsv(string, string)`, and `FromObject(object, ObjectGraphOptions?)`. That's the entire public surface for inbound data. No format detection, no plugin pattern — by design. The third method reflection-walks a runtime .NET object, treating user-defined types as walkable nodes and framework types (`System.*`/`Microsoft.*`, primitives, `string`, `DateTime`, `Guid`, …) as leaf values; collections become group nodes; reference cycles are detected via `ReferenceEqualityComparer` and rendered as dashed `ref` edges.
 
 ## Decision log
 
 A few opinionated calls worth recording:
 
-- **Two importers, eight renderers** — explained in the mental-model section above. Briefly: users *choose* a viz library; they don't *choose* a source file format, they just have data. We document one shape and let callers map.
+- **Three import entry points, eight renderers** — explained in the mental-model section above. Briefly: users *choose* a viz library; they don't *choose* a source format, they just have data (in JSON, in a CSV, or sitting in memory as an object). We document one JSON shape, one CSV convention, and one reflection walker — and let callers map whatever they have to one of those three.
 - **MSAGL as an opt-in adapter** — Core depends on no external native libs. MSAGL ships through a separate package; calling `MsaglLayouts.Register()` once at startup lets it transparently override the built-in Sugiyama/MDS factories in the `LayoutProviders` registry. Renderers don't know about MSAGL at all.
 - **Core JSON ≠ renderer JSON** — every JSON-emitting renderer (ReactFlow, Cytoscape, D3, Sigma) emits its target ecosystem's expected shape, not our canonical envelope. The canonical envelope is for `CoreJsonRenderer` and `NetworkImporter.FromJson`. Internal-format ≠ wire-formats-to-consumers.
 - **`RendererDescriptor` in Core, not in renderer packages** — keeps the framework-neutral descriptor + auto-discovery pattern usable by any host, not tied to the demo or to ASP.NET. The descriptor takes a `Func<IServiceProvider, Network, …>` so any DI container can resolve the renderer at call time.

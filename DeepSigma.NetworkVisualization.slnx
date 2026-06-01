@@ -10,7 +10,6 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/DeepSigma.NetworkVisualization.Core/DeepSigma.NetworkVisualization.Core.csproj" />
-    <Project Path="src/DeepSigma.NetworkVisualization.Importers/DeepSigma.NetworkVisualization.Importers.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Layout.Msagl/DeepSigma.NetworkVisualization.Layout.Msagl.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Renderers.Cytoscape/DeepSigma.NetworkVisualization.Renderers.Cytoscape.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Renderers.D3/DeepSigma.NetworkVisualization.Renderers.D3.csproj" />

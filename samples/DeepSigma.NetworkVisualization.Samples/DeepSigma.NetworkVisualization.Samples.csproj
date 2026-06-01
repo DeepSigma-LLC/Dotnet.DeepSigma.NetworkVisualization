@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
-    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Importers\DeepSigma.NetworkVisualization.Importers.csproj" />
   </ItemGroup>
 
 </Project>
