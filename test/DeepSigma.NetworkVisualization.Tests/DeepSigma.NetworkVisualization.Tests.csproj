@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CA1707;CA1062;CA2007;CA1822</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Microsoft.Testing.Platform" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Layout.Msagl\DeepSigma.NetworkVisualization.Layout.Msagl.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.Mermaid\DeepSigma.NetworkVisualization.Renderers.Mermaid.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.Dot\DeepSigma.NetworkVisualization.Renderers.Dot.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.Svg\DeepSigma.NetworkVisualization.Renderers.Svg.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.SkiaSharp\DeepSigma.NetworkVisualization.Renderers.SkiaSharp.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.ReactFlow\DeepSigma.NetworkVisualization.Renderers.ReactFlow.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.Cytoscape\DeepSigma.NetworkVisualization.Renderers.Cytoscape.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.D3\DeepSigma.NetworkVisualization.Renderers.D3.csproj" />
+  </ItemGroup>
+
+</Project>

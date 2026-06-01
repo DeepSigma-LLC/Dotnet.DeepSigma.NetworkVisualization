@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>D3 force-graph JSON renderer for DeepSigma network visualization.</Description>
+    <PackageId>DeepSigma.NetworkVisualization.Renderers.D3</PackageId>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
+  </ItemGroup>
+
+</Project>

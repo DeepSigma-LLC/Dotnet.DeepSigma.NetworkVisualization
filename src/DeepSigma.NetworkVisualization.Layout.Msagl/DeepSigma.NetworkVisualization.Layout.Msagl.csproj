@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>MSAGL-backed layout providers for DeepSigma network visualization.</Description>
+    <PackageId>DeepSigma.NetworkVisualization.Layout.Msagl</PackageId>
+    <IsPackable>true</IsPackable>
+    <NoWarn>$(NoWarn);CA1062;CA1822;CA1031</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
+    <PackageReference Include="AutomaticGraphLayout" />
+  </ItemGroup>
+
+</Project>

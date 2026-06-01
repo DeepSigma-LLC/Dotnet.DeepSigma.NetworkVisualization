@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Mermaid (flowchart) renderer for DeepSigma network visualization.</Description>
+    <PackageId>DeepSigma.NetworkVisualization.Renderers.Mermaid</PackageId>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
+  </ItemGroup>
+
+</Project>

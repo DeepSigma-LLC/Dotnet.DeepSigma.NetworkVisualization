@@ -1,0 +1,56 @@
+{
+  "name": "deepsigma-network-react",
+  "version": "0.1.0",
+  "description": "React components rendering DeepSigma network visualization JSON (ReactFlow, Cytoscape, D3, Mermaid).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "deepsigma-network-core": "0.1.0"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18",
+    "reactflow": "^11",
+    "cytoscape": "^3",
+    "d3": "^7",
+    "mermaid": "^11",
+    "@hpcc-js/wasm-graphviz": "^1"
+  },
+  "peerDependenciesMeta": {
+    "reactflow": { "optional": true },
+    "cytoscape": { "optional": true },
+    "d3": { "optional": true },
+    "mermaid": { "optional": true },
+    "@hpcc-js/wasm-graphviz": { "optional": true }
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/react": "^18.3.3",
+    "@types/d3": "^7.4.3",
+    "@types/cytoscape": "^3.21.4",
+    "@types/dagre": "^0.7.52",
+    "react": "^18.3.1",
+    "reactflow": "^11.11.4",
+    "cytoscape": "^3.30.0",
+    "cytoscape-dagre": "^2.5.0",
+    "dagre": "^0.8.5",
+    "d3": "^7.9.0",
+    "mermaid": "^11.4.1",
+    "@hpcc-js/wasm-graphviz": "^1.6.0"
+  }
+}

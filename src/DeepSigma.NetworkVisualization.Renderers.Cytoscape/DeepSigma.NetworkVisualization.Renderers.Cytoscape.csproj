@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Cytoscape.js JSON renderer for DeepSigma network visualization.</Description>
+    <PackageId>DeepSigma.NetworkVisualization.Renderers.Cytoscape</PackageId>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
+  </ItemGroup>
+
+</Project>

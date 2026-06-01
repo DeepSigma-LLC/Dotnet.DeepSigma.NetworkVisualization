@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Core abstractions, fluent builder, and JSON contract for DeepSigma network visualization.</Description>
+    <PackageId>DeepSigma.NetworkVisualization.Core</PackageId>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+</Project>

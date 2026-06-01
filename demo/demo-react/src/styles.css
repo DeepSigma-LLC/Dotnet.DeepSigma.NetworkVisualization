@@ -1,0 +1,25 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; }
+body { background: #f8fafc; color: #1e293b; }
+
+.layout { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+.sidebar { background: #0f172a; color: #f1f5f9; padding: 16px; overflow-y: auto; }
+.sidebar h1 { font-size: 18px; margin: 0 0 16px 0; }
+.sidebar h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin: 16px 0 8px 0; }
+.sample-list { list-style: none; padding: 0; margin: 0; }
+.sample-list li { padding: 8px 12px; margin: 4px 0; border-radius: 6px; cursor: pointer; }
+.sample-list li:hover { background: #1e293b; }
+.sample-list li.active { background: #2563eb; }
+.sample-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+.main { display: flex; flex-direction: column; overflow: hidden; }
+.tabs { display: flex; gap: 4px; padding: 8px 16px; background: white; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+.tab { padding: 6px 14px; border: 1px solid #e2e8f0; background: white; border-radius: 999px; cursor: pointer; font-size: 13px; }
+.tab.active { background: #2563eb; color: white; border-color: #2563eb; }
+.panel { flex: 1; padding: 16px; overflow: auto; background: white; }
+.panel-title { font-size: 12px; text-transform: uppercase; color: #64748b; margin-bottom: 8px; }
+.code { background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5; height: calc(100% - 32px); white-space: pre-wrap; }
+.loading { padding: 24px; color: #64748b; font-style: italic; }
+.svg-host { display: flex; align-items: center; justify-content: center; min-height: 100%; }
+.svg-host svg { max-width: 100%; max-height: 100%; }
+.png-host img { max-width: 100%; max-height: 100%; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 8px; }

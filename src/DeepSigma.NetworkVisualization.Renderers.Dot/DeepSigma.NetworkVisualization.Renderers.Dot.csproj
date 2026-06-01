@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>GraphViz DOT renderer for DeepSigma network visualization.</Description>
+    <PackageId>DeepSigma.NetworkVisualization.Renderers.Dot</PackageId>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
+  </ItemGroup>
+
+</Project>

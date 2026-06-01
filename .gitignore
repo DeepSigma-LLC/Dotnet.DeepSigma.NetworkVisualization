@@ -1,0 +1,18 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+
+# Node
+node_modules/
+dist/
+.cache/
+
+# Demo build output
+demo/DeepSigma.NetworkVisualization.Demo.Web/wwwroot/
+
+# IDE
+.idea/
+.vscode/
+*.swp
