@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Sigma.js / Graphology JSON renderer for DeepSigma network visualization. Suited to large graphs via WebGL.</Description>
+    <PackageId>DeepSigma.NetworkVisualization.Renderers.Sigma</PackageId>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+</Project>

@@ -10,12 +10,14 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/DeepSigma.NetworkVisualization.Core/DeepSigma.NetworkVisualization.Core.csproj" />
+    <Project Path="src/DeepSigma.NetworkVisualization.Importers/DeepSigma.NetworkVisualization.Importers.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Layout.Msagl/DeepSigma.NetworkVisualization.Layout.Msagl.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Renderers.Cytoscape/DeepSigma.NetworkVisualization.Renderers.Cytoscape.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Renderers.D3/DeepSigma.NetworkVisualization.Renderers.D3.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Renderers.Dot/DeepSigma.NetworkVisualization.Renderers.Dot.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Renderers.Mermaid/DeepSigma.NetworkVisualization.Renderers.Mermaid.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Renderers.ReactFlow/DeepSigma.NetworkVisualization.Renderers.ReactFlow.csproj" />
+    <Project Path="src/DeepSigma.NetworkVisualization.Renderers.Sigma/DeepSigma.NetworkVisualization.Renderers.Sigma.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Renderers.SkiaSharp/DeepSigma.NetworkVisualization.Renderers.SkiaSharp.csproj" />
     <Project Path="src/DeepSigma.NetworkVisualization.Renderers.Svg/DeepSigma.NetworkVisualization.Renderers.Svg.csproj" />
   </Folder>

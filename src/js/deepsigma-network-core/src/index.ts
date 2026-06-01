@@ -145,6 +145,7 @@ export interface ReactFlowPayload {
     animated: boolean;
     markerEnd?: { type: string } | null;
     style: Record<string, unknown>;
+    data?: Record<string, unknown>;
   }>;
   groups: Array<{ id: string; label?: string; parent?: string }>;
 }
@@ -192,6 +193,25 @@ export interface D3Payload {
     lineStyle: string;
   }>;
   groups: Array<{ id: string; label?: string; parent?: string }>;
+}
+
+export interface NetworkEventHandlers {
+  onNodeClick?: (id: string, data?: Record<string, unknown>) => void;
+  onEdgeClick?: (id: string, data?: Record<string, unknown>) => void;
+  onNodeHover?: (id: string | null) => void;
+}
+
+export interface SigmaPayload {
+  format: 'sigma';
+  version: string;
+  theme: { background: HexColor; fontFamily: string; fontSize: number; labelColor: HexColor };
+  interaction: InteractionSettings;
+  graph: {
+    attributes: Record<string, unknown>;
+    options: { type: 'directed' | 'undirected'; multi: boolean; allowSelfLoops: boolean };
+    nodes: Array<{ key: string; attributes: Record<string, unknown> }>;
+    edges: Array<{ key: string; source: string; target: string; attributes: Record<string, unknown> }>;
+  };
 }
 
 export function parseHexColor(hex: HexColor): { r: number; g: number; b: number; a: number } {

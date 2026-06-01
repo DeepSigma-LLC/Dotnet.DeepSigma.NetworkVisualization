@@ -29,14 +29,18 @@
     "cytoscape": "^3",
     "d3": "^7",
     "mermaid": "^11",
-    "@hpcc-js/wasm-graphviz": "^1"
+    "@hpcc-js/wasm-graphviz": "^1",
+    "sigma": "^3",
+    "graphology": "^0.25"
   },
   "peerDependenciesMeta": {
     "reactflow": { "optional": true },
     "cytoscape": { "optional": true },
     "d3": { "optional": true },
     "mermaid": { "optional": true },
-    "@hpcc-js/wasm-graphviz": { "optional": true }
+    "@hpcc-js/wasm-graphviz": { "optional": true },
+    "sigma": { "optional": true },
+    "graphology": { "optional": true }
   },
   "devDependencies": {
     "typescript": "^5.5.4",
@@ -51,6 +55,8 @@
     "dagre": "^0.8.5",
     "d3": "^7.9.0",
     "mermaid": "^11.4.1",
-    "@hpcc-js/wasm-graphviz": "^1.6.0"
+    "@hpcc-js/wasm-graphviz": "^1.6.0",
+    "sigma": "^3.0.0",
+    "graphology": "^0.25.4"
   }
 }

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { D3Payload } from 'deepsigma-network-core';
+import type { D3Payload, NetworkEventHandlers } from 'deepsigma-network-core';
 
-export interface D3NetworkProps {
+export interface D3NetworkProps extends NetworkEventHandlers {
   data: D3Payload;
   height?: number;
   width?: number;
@@ -24,11 +24,12 @@ interface SimLink extends d3.SimulationLinkDatum<SimNode> {
   lineStyle: string;
 }
 
-export function D3Network({ data, height = 600, width = 800 }: D3NetworkProps) {
+export function D3Network({ data, height = 600, width = 800, onNodeClick, onEdgeClick, onNodeHover }: D3NetworkProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
     if (!svgRef.current) return;
+    const dataById = new Map(data.nodes.map((n) => [n.id, (n as unknown as { data?: Record<string, unknown> }).data]));
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
     svg.attr('viewBox', `0 0 ${width} ${height}`).style('background', data.theme.background);
@@ -60,6 +61,9 @@ export function D3Network({ data, height = 600, width = 800 }: D3NetworkProps) {
       .attr('stroke', (d) => d.stroke).attr('stroke-width', (d) => d.strokeWidth)
       .attr('stroke-dasharray', (d) => d.lineStyle === 'dashed' ? '5 4' : d.lineStyle === 'dotted' ? '1 3' : null)
       .attr('marker-end', data.directed ? 'url(#d3-arrow)' : null);
+    if (onEdgeClick) {
+      link.style('cursor', 'pointer').on('click', (_, d) => onEdgeClick(d.id, undefined));
+    }
 
     const node = svg.append('g').selectAll<SVGCircleElement, SimNode>('circle').data(nodes).enter().append('circle')
       .attr('r', (d) => d.radius).attr('fill', (d) => d.fill).attr('stroke', (d) => d.stroke).attr('stroke-width', 1.5)
@@ -67,6 +71,11 @@ export function D3Network({ data, height = 600, width = 800 }: D3NetworkProps) {
         .on('start', (event, d) => { if (!event.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
         .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
         .on('end', (event, d) => { if (!event.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+    if (onNodeClick) {
+      node.style('cursor', 'pointer').on('click', (_, d) => onNodeClick(d.id, dataById.get(d.id)));
+    }
+    node.on('mouseenter', (_, d) => onNodeHover?.(d.id))
+        .on('mouseleave', () => onNodeHover?.(null));
 
     const label = svg.append('g').selectAll('text').data(nodes).enter().append('text')
       .text((d) => d.label).attr('font-size', data.theme.fontSize)

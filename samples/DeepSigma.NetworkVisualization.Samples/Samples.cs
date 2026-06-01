@@ -10,21 +10,26 @@ public static class SampleNetworks
         ["pipeline"] = Pipeline,
         ["social-network"] = SocialNetwork,
         ["clusters"] = Clusters,
+        ["radial-taxonomy"] = RadialTaxonomy,
     };
 
     public static Network OrgChart() => NetworkBuilder.Create()
         .Directed()
         .Title("Org Chart")
         .WithLayout(l => l.Hierarchical().Direction(LayoutDirection.TopToBottom).NodeSpacing(60).RankSpacing(100))
-        .AddNode("ceo", n => n.Label("CEO").Shape(NodeShape.RoundedRectangle).Fill("#1976D2").LabelColor("#FFFFFF").Size(140, 60))
-        .AddNode("cto", n => n.Label("CTO").Shape(NodeShape.RoundedRectangle).Fill("#42A5F5").LabelColor("#FFFFFF").Size(130, 55))
-        .AddNode("cfo", n => n.Label("CFO").Shape(NodeShape.RoundedRectangle).Fill("#42A5F5").LabelColor("#FFFFFF").Size(130, 55))
-        .AddNode("coo", n => n.Label("COO").Shape(NodeShape.RoundedRectangle).Fill("#42A5F5").LabelColor("#FFFFFF").Size(130, 55))
-        .AddNode("eng1", n => n.Label("Eng A").Size(110, 50))
-        .AddNode("eng2", n => n.Label("Eng B").Size(110, 50))
-        .AddNode("eng3", n => n.Label("Eng C").Size(110, 50))
-        .AddNode("acct", n => n.Label("Accountant").Size(120, 50))
-        .AddNode("ops1", n => n.Label("Ops Lead").Size(120, 50))
+        .AddNode("ceo", n => n.Label("CEO").Shape(NodeShape.RoundedRectangle).Fill("#1976D2").LabelColor("#FFFFFF").Size(140, 60)
+            .Tooltip("Alex Rivers — since 2019").Data("name", "Alex Rivers").Data("startYear", 2019).Data("directs", 3))
+        .AddNode("cto", n => n.Label("CTO").Shape(NodeShape.RoundedRectangle).Fill("#42A5F5").LabelColor("#FFFFFF").Size(130, 55)
+            .Tooltip("Priya Singh").Data("name", "Priya Singh").Data("team", "Engineering").Data("headcount", 14))
+        .AddNode("cfo", n => n.Label("CFO").Shape(NodeShape.RoundedRectangle).Fill("#42A5F5").LabelColor("#FFFFFF").Size(130, 55)
+            .Tooltip("Marcus Chen").Data("name", "Marcus Chen").Data("team", "Finance").Data("headcount", 4))
+        .AddNode("coo", n => n.Label("COO").Shape(NodeShape.RoundedRectangle).Fill("#42A5F5").LabelColor("#FFFFFF").Size(130, 55)
+            .Tooltip("Dana Wu").Data("name", "Dana Wu").Data("team", "Operations").Data("headcount", 6))
+        .AddNode("eng1", n => n.Label("Eng A").Size(110, 50).Data("name", "Sam Patel").Data("level", "Senior"))
+        .AddNode("eng2", n => n.Label("Eng B").Size(110, 50).Data("name", "Jordan Kim").Data("level", "Staff"))
+        .AddNode("eng3", n => n.Label("Eng C").Size(110, 50).Data("name", "Riley Tan").Data("level", "Mid"))
+        .AddNode("acct", n => n.Label("Accountant").Size(120, 50).Data("name", "Taylor Brooks").Data("level", "Senior"))
+        .AddNode("ops1", n => n.Label("Ops Lead").Size(120, 50).Data("name", "Jamie Park").Data("level", "Lead"))
         .AddEdge("ceo", "cto", e => e.Label("reports"))
         .AddEdge("ceo", "cfo", e => e.Label("reports"))
         .AddEdge("ceo", "coo", e => e.Label("reports"))
@@ -81,6 +86,41 @@ public static class SampleNetworks
             ("ivan","carol"),("eve","heidi"),("dave","grace"),
         ];
         foreach (var (a, b) in friendships) nb.AddEdge(a, b);
+        return nb.Build();
+    }
+
+    public static Network RadialTaxonomy()
+    {
+        var nb = NetworkBuilder.Create()
+            .Directed()
+            .Title("Knowledge Taxonomy")
+            .WithLayout(l => l.Algorithm(LayoutAlgorithm.Radial).RankSpacing(140))
+            .AddNode("root", n => n.Label("Knowledge").Shape(NodeShape.Circle).Fill("#1976D2").LabelColor("#FFFFFF").Size(90, 90));
+
+        (string parent, string id, string label, string fill)[] branches = [
+            ("root", "sci",  "Sciences",        "#26A69A"),
+            ("root", "art",  "Arts",            "#EF5350"),
+            ("root", "hum",  "Humanities",      "#FFCA28"),
+            ("root", "eng",  "Engineering",     "#7E57C2"),
+            ("sci", "phys",  "Physics",         "#80CBC4"),
+            ("sci", "bio",   "Biology",         "#80CBC4"),
+            ("sci", "chem",  "Chemistry",       "#80CBC4"),
+            ("sci", "math",  "Mathematics",     "#80CBC4"),
+            ("art", "music", "Music",           "#EF9A9A"),
+            ("art", "paint", "Painting",        "#EF9A9A"),
+            ("art", "film",  "Cinema",          "#EF9A9A"),
+            ("hum", "hist",  "History",         "#FFE082"),
+            ("hum", "phil",  "Philosophy",      "#FFE082"),
+            ("hum", "ling",  "Linguistics",     "#FFE082"),
+            ("eng", "swe",   "Software",        "#B39DDB"),
+            ("eng", "mech",  "Mechanical",      "#B39DDB"),
+            ("eng", "civil", "Civil",           "#B39DDB"),
+            ("eng", "elec",  "Electrical",      "#B39DDB"),
+        ];
+        foreach (var (_, id, label, fill) in branches)
+            nb.AddNode(id, n => n.Label(label).Shape(NodeShape.Circle).Fill(fill).Size(56, 56));
+        foreach (var (parent, id, _, _) in branches)
+            nb.AddEdge(parent, id);
         return nb.Build();
     }
 

@@ -1,46 +1,63 @@
-import { Component, useEffect, useState, type ReactNode } from 'react';
+import { Component, useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   ReactFlowNetwork,
   CytoscapeNetwork,
   D3Network,
   MermaidNetwork,
   DotNetwork,
+  SigmaNetwork,
 } from 'deepsigma-network-react';
-import type { ReactFlowPayload, CytoscapePayload, D3Payload } from 'deepsigma-network-core';
+import type {
+  ReactFlowPayload,
+  CytoscapePayload,
+  D3Payload,
+  SigmaPayload,
+  NetworkEventHandlers,
+} from 'deepsigma-network-core';
+import { NetworkEditor } from './NetworkEditor';
+import { ImportPanel } from './ImportPanel';
 
-interface SampleInfo { name: string; title: string; nodeCount: number; edgeCount: number; }
+interface SampleInfo { name: string; title: string; nodeCount: number; edgeCount: number; edited?: boolean; imported?: boolean; }
 
 type ContentType = 'json' | 'text' | 'binary-url';
+type ThemeKey = 'light' | 'dark';
+
+interface SelectedItem {
+  kind: 'node' | 'edge';
+  id: string;
+  data?: Record<string, unknown>;
+}
 
 interface TabSpec {
   label: string;
   contentType: ContentType;
-  render: (payload: unknown) => ReactNode;
+  render: (payload: unknown, handlers: NetworkEventHandlers) => ReactNode;
+  interactive: boolean;
 }
 
 const TAB_CONFIG = {
   reactflow: {
-    label: 'ReactFlow',
-    contentType: 'json',
-    render: (p) => (
+    label: 'ReactFlow', contentType: 'json', interactive: true,
+    render: (p, h) => (
       <div style={{ width: '100%', height: '100%' }}>
-        <ReactFlowNetwork data={p as ReactFlowPayload} height="100%" />
+        <ReactFlowNetwork data={p as ReactFlowPayload} height="100%" {...h} />
       </div>
     ),
   },
   cytoscape: {
-    label: 'Cytoscape.js',
-    contentType: 'json',
-    render: (p) => <CytoscapeNetwork data={p as CytoscapePayload} height="100%" />,
+    label: 'Cytoscape.js', contentType: 'json', interactive: true,
+    render: (p, h) => <CytoscapeNetwork data={p as CytoscapePayload} height="100%" {...h} />,
   },
   d3: {
-    label: 'D3',
-    contentType: 'json',
-    render: (p) => <D3Network data={p as D3Payload} height={650} width={1100} />,
+    label: 'D3', contentType: 'json', interactive: true,
+    render: (p, h) => <D3Network data={p as D3Payload} height={650} width={1100} {...h} />,
+  },
+  sigma: {
+    label: 'Sigma.js', contentType: 'json', interactive: true,
+    render: (p, h) => <SigmaNetwork data={p as SigmaPayload} height="100%" {...h} />,
   },
   mermaid: {
-    label: 'Mermaid',
-    contentType: 'text',
+    label: 'Mermaid', contentType: 'text', interactive: false,
     render: (p) => (
       <>
         <div className="panel-title">Rendered Mermaid (text input below)</div>
@@ -50,8 +67,7 @@ const TAB_CONFIG = {
     ),
   },
   dot: {
-    label: 'GraphViz DOT',
-    contentType: 'text',
+    label: 'GraphViz DOT', contentType: 'text', interactive: false,
     render: (p) => (
       <>
         <div className="panel-title">Rendered GraphViz (DOT source below)</div>
@@ -61,18 +77,15 @@ const TAB_CONFIG = {
     ),
   },
   svg: {
-    label: 'SVG',
-    contentType: 'text',
+    label: 'SVG', contentType: 'text', interactive: false,
     render: (p) => <div className="svg-host" dangerouslySetInnerHTML={{ __html: p as string }} />,
   },
   png: {
-    label: 'PNG (Skia)',
-    contentType: 'binary-url',
+    label: 'PNG (Skia)', contentType: 'binary-url', interactive: false,
     render: (p) => <div className="png-host"><img src={p as string} alt="rendered network" /></div>,
   },
   core: {
-    label: 'Core JSON',
-    contentType: 'json',
+    label: 'Core JSON', contentType: 'json', interactive: false,
     render: (p) => <pre className="code">{JSON.stringify(p, null, 2)}</pre>,
   },
 } satisfies Record<string, TabSpec>;
@@ -112,30 +125,63 @@ export function App() {
   const [samples, setSamples] = useState<SampleInfo[]>([]);
   const [selected, setSelected] = useState<string>('');
   const [tab, setTab] = useState<TabKey>('reactflow');
+  const [theme, setTheme] = useState<ThemeKey>('light');
+  const [picked, setPicked] = useState<SelectedItem | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
-  useEffect(() => {
+  const refreshSamples = useCallback(() => {
     fetch('/api/samples').then((r) => r.json()).then((data: SampleInfo[]) => {
       setSamples(data);
       if (data.length > 0 && !selected) setSelected(data[0]!.name);
     });
-  }, []);
+  }, [selected]);
+
+  useEffect(() => { refreshSamples(); }, []);
+
+  useEffect(() => { setPicked(null); setHoveredId(null); }, [selected, tab]);
+
+  const handlers: NetworkEventHandlers = {
+    onNodeClick: useCallback((id, data) => setPicked({ kind: 'node', id, data }), []),
+    onEdgeClick: useCallback((id, data) => setPicked({ kind: 'edge', id, data }), []),
+    onNodeHover: useCallback((id) => setHoveredId(id), []),
+  };
 
   return (
-    <div className="layout">
+    <div className={`layout theme-${theme}`}>
       <aside className="sidebar">
         <h1>DeepSigma<br/>Networks</h1>
+        <div className="theme-toggle">
+          <button className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>Light</button>
+          <button className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>Dark</button>
+        </div>
         <h2>Samples</h2>
         <ul className="sample-list">
           {samples.map((s) => (
             <li key={s.name} className={s.name === selected ? 'active' : ''} onClick={() => setSelected(s.name)}>
-              <div>{s.title}</div>
+              <div>
+                {s.title}
+                {s.edited && <span className="edited-badge">edited</span>}
+                {s.imported && <span className="imported-badge">imported</span>}
+              </div>
               <div className="sample-meta">{s.nodeCount} nodes · {s.edgeCount} edges</div>
             </li>
           ))}
         </ul>
+        <ImportPanel onImported={(id) => { refreshSamples(); setSelected(id); }} />
+        <h2>Editor</h2>
+        <button
+          className={`edit-toggle ${editMode ? 'on' : ''}`}
+          onClick={() => { setEditMode(!editMode); if (!editMode) setTab('reactflow'); }}
+        >
+          {editMode ? 'Exit edit mode' : 'Enter edit mode (ReactFlow)'}
+        </button>
+        <h2>Selection</h2>
+        <SelectionPanel item={picked} interactive={TAB_CONFIG[tab].interactive} />
+        {hoveredId && <div className="hover-hint">hovering: {hoveredId}</div>}
         <h2>About</h2>
         <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
-          One Network model, rendered every way. Backend emits JSON / SVG / PNG / DOT / Mermaid from C#; this page mounts the JSON into ReactFlow, Cytoscape.js, and D3.
+          One Network model, rendered every way. Click any node in an interactive tab to see its payload.
         </p>
       </aside>
       <main className="main">
@@ -148,9 +194,15 @@ export function App() {
         </div>
         <div className="panel">
           {selected && (
-            <PanelErrorBoundary resetKey={`${selected}-${tab}`}>
-              <Panel key={`${selected}-${tab}`} sample={selected} tab={tab} />
-            </PanelErrorBoundary>
+            editMode && tab === 'reactflow' ? (
+              <PanelErrorBoundary resetKey={`editor-${selected}-${theme}`}>
+                <NetworkEditor key={`editor-${selected}-${theme}`} sample={selected} theme={theme} onSaved={refreshSamples} />
+              </PanelErrorBoundary>
+            ) : (
+              <PanelErrorBoundary resetKey={`${selected}-${tab}-${theme}`}>
+                <Panel key={`${selected}-${tab}-${theme}`} sample={selected} tab={tab} theme={theme} handlers={handlers} />
+              </PanelErrorBoundary>
+            )
           )}
         </div>
       </main>
@@ -158,7 +210,28 @@ export function App() {
   );
 }
 
-function Panel({ sample, tab }: { sample: string; tab: TabKey }) {
+function SelectionPanel({ item, interactive }: { item: SelectedItem | null; interactive: boolean }) {
+  if (!interactive) return <div className="selection-empty">Switch to an interactive renderer (ReactFlow, Cytoscape, D3, Sigma) to click nodes.</div>;
+  if (!item) return <div className="selection-empty">Click a node or edge.</div>;
+  return (
+    <div className="selection-card">
+      <div className="selection-kind">{item.kind}</div>
+      <div className="selection-id">{item.id}</div>
+      {item.data && Object.keys(item.data).length > 0 && (
+        <dl className="selection-data">
+          {Object.entries(item.data).map(([k, v]) => (
+            <div key={k} className="selection-row">
+              <dt>{k}</dt>
+              <dd>{String(v)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+  );
+}
+
+function Panel({ sample, tab, theme, handlers }: { sample: string; tab: TabKey; theme: ThemeKey; handlers: NetworkEventHandlers }) {
   const [payload, setPayload] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const cfg = TAB_CONFIG[tab];
@@ -166,7 +239,7 @@ function Panel({ sample, tab }: { sample: string; tab: TabKey }) {
   useEffect(() => {
     setLoading(true);
     setPayload(null);
-    const url = `/api/samples/${sample}/${tab}`;
+    const url = `/api/samples/${sample}/${tab}?theme=${theme}`;
     const ctrl = new AbortController();
 
     if (cfg.contentType === 'binary-url') {
@@ -182,8 +255,8 @@ function Panel({ sample, tab }: { sample: string; tab: TabKey }) {
         .catch(() => {});
     }
     return () => ctrl.abort();
-  }, [sample, tab, cfg.contentType]);
+  }, [sample, tab, theme, cfg.contentType]);
 
   if (loading || payload === null) return <div className="loading">Loading…</div>;
-  return <>{cfg.render(payload)}</>;
+  return <>{cfg.render(payload, handlers)}</>;
 }
