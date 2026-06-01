@@ -7,9 +7,24 @@ import { RendererFrame, type RendererState } from './RendererFrame';
 export interface SigmaNetworkProps extends NetworkEventHandlers {
   data: SigmaPayload;
   height?: number | string;
+  /** Fraction (0–1) of overlap-allowed for label rendering. Higher = more labels visible at the cost of overlap. Default 0.7. */
+  labelDensity?: number;
+  /** Spatial grid cell size in pixels used by Sigma to decide which labels to draw. Default 80. */
+  labelGridCellSize?: number;
+  /** Drop labels whose rendered size falls below this threshold. Default 6. */
+  labelRenderedSizeThreshold?: number;
 }
 
-export function SigmaNetwork({ data, height = 600, onNodeClick, onEdgeClick, onNodeHover }: SigmaNetworkProps) {
+export function SigmaNetwork({
+  data,
+  height = 600,
+  labelDensity = 0.7,
+  labelGridCellSize = 80,
+  labelRenderedSizeThreshold = 6,
+  onNodeClick,
+  onEdgeClick,
+  onNodeHover,
+}: SigmaNetworkProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sigmaRef = useRef<Sigma | null>(null);
   const [state, setState] = useState<RendererState>({ kind: 'loading', label: 'Mounting Sigma…' });
@@ -35,6 +50,10 @@ export function SigmaNetwork({ data, height = 600, onNodeClick, onEdgeClick, onN
         labelColor: { color: data.theme.labelColor },
         renderEdgeLabels: true,
         defaultEdgeColor: data.theme.labelColor,
+        // Drop overlapping labels at low zoom so dense graphs stay readable.
+        labelDensity,
+        labelGridCellSize,
+        labelRenderedSizeThreshold,
       });
       sigma.on('clickNode', ({ node }) => {
         const attrs = graph.getNodeAttributes(node) as Record<string, unknown>;
@@ -52,7 +71,9 @@ export function SigmaNetwork({ data, height = 600, onNodeClick, onEdgeClick, onN
       setState({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
     }
     return () => { sigmaRef.current?.kill(); sigmaRef.current = null; };
-  }, [data]);
+    // Callback identity intentionally excluded so wrapper re-renders don't tear down the Sigma graph.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, labelDensity, labelGridCellSize, labelRenderedSizeThreshold]);
 
   if (state.kind === 'error') return <RendererFrame state={state} />;
   return (

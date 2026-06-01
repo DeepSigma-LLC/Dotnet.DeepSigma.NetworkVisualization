@@ -75,6 +75,7 @@ src/
     └── deepsigma-network-react                       # React components: ReactFlowNetwork, CytoscapeNetwork, D3Network, SigmaNetwork, MermaidNetwork, DotNetwork
 
 samples/DeepSigma.NetworkVisualization.Samples        # OrgChart, Pipeline, SocialNetwork, Clusters, RadialTaxonomy, ObjectGraphSample
+samples/DeepSigma.NetworkVisualization.Samples.Console # Headless console runner — renders any sample to .svg/.png/.mmd/.dot/.json files
 test/DeepSigma.NetworkVisualization.Tests             # xUnit v3
 demo/DeepSigma.NetworkVisualization.Demo.Web          # ASP.NET minimal API host
 demo/demo-react                                        # Vite + React frontend (interactive viewer + editor + import UI)
@@ -122,6 +123,79 @@ Console.WriteLine(new MermaidRenderer().Render(network));
 ```
 
 For more recipes (every renderer, custom layouts, imports, registering new renderers, using the React components), see **[USAGE.md](USAGE.md)**.
+
+## Headless rendering — no frontend required
+
+The React demo is *one* consumer; the .NET side stands on its own. Four of the eight renderers produce final artifacts you can write straight to disk — no web server, no browser, no JS runtime:
+
+| Renderer | Output | Self-contained? |
+| --- | --- | --- |
+| **Mermaid** | Mermaid text (`.mmd`) | ✅ Drops into any GitHub/GitLab/Azure DevOps README and renders natively. |
+| **GraphViz DOT** | DOT text (`.dot`) | ✅ Pipe through `dot -Tpng` or render in any DOT-aware tool. |
+| **SVG** | SVG document (`.svg`) | ✅ Open in any browser/image viewer; embed in HTML; convert to PNG with `rsvg-convert`/Inkscape/ImageMagick. |
+| **SkiaSharp** | PNG/JPEG/WebP bytes (`.png`) | ✅ Write to disk directly. SkiaSharp ships native binaries for Win/Linux/macOS via NuGet. |
+| ReactFlow / Cytoscape / D3 / Sigma | JSON | Needs a browser + the corresponding JS library to render. Still portable as data. |
+
+```csharp
+using DeepSigma.NetworkVisualization;
+using DeepSigma.NetworkVisualization.Builders;
+using DeepSigma.NetworkVisualization.Renderers.Mermaid;
+using DeepSigma.NetworkVisualization.Renderers.Dot;
+using DeepSigma.NetworkVisualization.Renderers.Svg;
+using DeepSigma.NetworkVisualization.Renderers.SkiaSharp;
+
+var network = NetworkBuilder.Create()
+    .Directed()
+    .AddNode("a", n => n.Label("Alice"))
+    .AddNode("b", n => n.Label("Bob"))
+    .AddEdge("a", "b", e => e.Label("knows"))
+    .Build();
+
+File.WriteAllText("graph.mmd",  new MermaidRenderer().Render(network));
+File.WriteAllText("graph.dot",  new DotRenderer().Render(network));
+File.WriteAllText("graph.svg",  new SvgRenderer().Render(network));
+File.WriteAllBytes("graph.png", new SkiaRenderer().Render(network));
+```
+
+That's the whole pattern. No web server, no JS bundle, no browser — just `dotnet run`. Use it from:
+
+- **CI documentation pipelines** — render diagrams during the build, commit them alongside source
+- **Server-side report generation** — embed graphs in PDFs, email attachments, Slack messages
+- **CLI tools** — `mytool render-deps > deps.svg`
+- **Background workers** — visualize event/job graphs into blob storage
+- **Test artifacts** — write SVGs from fixtures so regressions show up in CI
+
+### The bundled console runner
+
+`samples/DeepSigma.NetworkVisualization.Samples.Console` is a ~30-line demonstration that exercises this end-to-end. It walks the built-in sample library and writes every standalone format for each one:
+
+```bash
+# Render every sample into ./out/
+dotnet run --project samples/DeepSigma.NetworkVisualization.Samples.Console
+
+# Render a single sample into a custom directory
+dotnet run --project samples/DeepSigma.NetworkVisualization.Samples.Console -- org-chart ./diagrams
+```
+
+Output:
+
+```text
+✓ org-chart            9 nodes / 8 edges  → ./out/org-chart.{mmd,dot,svg,png,json}
+✓ pipeline             8 nodes / 10 edges → ./out/pipeline.{mmd,dot,svg,png,json}
+✓ social-network       10 nodes / 15 edges → ./out/social-network.{mmd,dot,svg,png,json}
+✓ clusters             9 nodes / 11 edges → ./out/clusters.{mmd,dot,svg,png,json}
+✓ radial-taxonomy      19 nodes / 18 edges → ./out/radial-taxonomy.{mmd,dot,svg,png,json}
+✓ object-graph         41 nodes / 42 edges → ./out/object-graph.{mmd,dot,svg,png,json}
+
+Wrote 30 files to /…/out
+```
+
+The console runner is also a working template — copy [its `Program.cs`](samples/DeepSigma.NetworkVisualization.Samples.Console/Program.cs) into your own project, replace `SampleNetworks.All[name]()` with your own `Network` source, and you have a CI build step.
+
+### Caveats
+
+- **GraphViz DOT** is just text — to convert `.dot` to a PNG/SVG file you need GraphViz installed locally (`apt install graphviz`, `brew install graphviz`, `winget install graphviz`), or you can use the browser-side `@hpcc-js/wasm-graphviz` package (that's what our React demo uses).
+- **SkiaSharp** needs platform-specific native binaries, declared as `SkiaSharp.NativeAssets.Win32` / `.Linux` / `.macOS` NuGet packages — they ship transitively, so consuming projects don't usually need to do anything. AOT compilation requires you to publish with the right RID.
 
 ## Adding your own renderer
 

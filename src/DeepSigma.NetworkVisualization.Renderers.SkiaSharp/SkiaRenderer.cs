@@ -105,7 +105,7 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
         {
             case NodeShape.Circle:
             {
-                var r = Math.Min(fw, fh) / 2;
+                var r = (float)ShapeGeometry.CircleRadius(w, h);
                 canvas.DrawCircle(cx, cy, r, fillPaint);
                 canvas.DrawCircle(cx, cy, r, strokePaint);
                 break;
@@ -125,39 +125,10 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
                 break;
             }
             case NodeShape.Diamond:
-            {
-                using var path = new SKPath();
-                path.MoveTo(cx, cy - fh / 2);
-                path.LineTo(cx + fw / 2, cy);
-                path.LineTo(cx, cy + fh / 2);
-                path.LineTo(cx - fw / 2, cy);
-                path.Close();
-                canvas.DrawPath(path, fillPaint);
-                canvas.DrawPath(path, strokePaint);
-                break;
-            }
             case NodeShape.Hexagon:
-            {
-                using var path = new SKPath();
-                var qw = fw / 4;
-                path.MoveTo(cx - fw / 2 + qw, cy - fh / 2);
-                path.LineTo(cx + fw / 2 - qw, cy - fh / 2);
-                path.LineTo(cx + fw / 2, cy);
-                path.LineTo(cx + fw / 2 - qw, cy + fh / 2);
-                path.LineTo(cx - fw / 2 + qw, cy + fh / 2);
-                path.LineTo(cx - fw / 2, cy);
-                path.Close();
-                canvas.DrawPath(path, fillPaint);
-                canvas.DrawPath(path, strokePaint);
-                break;
-            }
             case NodeShape.Triangle:
             {
-                using var path = new SKPath();
-                path.MoveTo(cx, cy - fh / 2);
-                path.LineTo(cx + fw / 2, cy + fh / 2);
-                path.LineTo(cx - fw / 2, cy + fh / 2);
-                path.Close();
+                using var path = BuildPolygonPath(ShapeGeometry.PolygonFor(shape, p.X, p.Y, w, h)!);
                 canvas.DrawPath(path, fillPaint);
                 canvas.DrawPath(path, strokePaint);
                 break;
@@ -173,6 +144,16 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
 
         DrawText(canvas, n.ResolvedLabel(), cx, cy, (float)n.ResolvedFontSize(theme),
             n.ResolvedFontFamily(theme), n.ResolvedLabelColor(theme));
+    }
+
+    private static SKPath BuildPolygonPath(Position[] points)
+    {
+        var path = new SKPath();
+        path.MoveTo((float)points[0].X, (float)points[0].Y);
+        for (int i = 1; i < points.Length; i++)
+            path.LineTo((float)points[i].X, (float)points[i].Y);
+        path.Close();
+        return path;
     }
 
     private static void DrawArrowHead(SKCanvas canvas, Position from, Position to, SKColor color)

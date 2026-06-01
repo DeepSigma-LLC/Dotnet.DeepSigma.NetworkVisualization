@@ -6,6 +6,7 @@
     <Project Path="demo/DeepSigma.NetworkVisualization.Demo.Web/DeepSigma.NetworkVisualization.Demo.Web.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/DeepSigma.NetworkVisualization.Samples.Console/DeepSigma.NetworkVisualization.Samples.Console.csproj" />
     <Project Path="samples/DeepSigma.NetworkVisualization.Samples/DeepSigma.NetworkVisualization.Samples.csproj" />
   </Folder>
   <Folder Name="/src/">

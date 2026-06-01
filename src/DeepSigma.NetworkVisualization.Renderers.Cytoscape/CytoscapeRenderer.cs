@@ -77,6 +77,10 @@ public sealed class CytoscapeRenderer : IJsonNetworkRenderer
                 fontSize = theme.DefaultFontSize,
                 textValign = "center",
                 textHalign = "center",
+                // Fade labels as the user zooms out so a dense graph stays readable.
+                // mapData(zoom, in0, in1, out0, out1) interpolates linearly; below 0.5x labels are gone.
+                textOpacity = "mapData(zoom, 0.5, 1.5, 0, 1)",
+                minZoomedFontSize = 8,
             } },
             new { selector = "edge", style = new {
                 width = 1.5,
@@ -84,9 +88,15 @@ public sealed class CytoscapeRenderer : IJsonNetworkRenderer
                 targetArrowColor = theme.DefaultEdgeStroke.ToHex(),
                 targetArrowShape = network.Directed ? "triangle" : "none",
                 curveStyle = "bezier",
+                controlPointStepSize = 40,
                 label = "data(label)",
                 fontSize = 10,
                 color = theme.DefaultLabelColor.ToHex(),
+                textBackgroundColor = theme.Background.ToHex(),
+                textBackgroundOpacity = 0.85,
+                textBackgroundPadding = "2px",
+                textBackgroundShape = "roundrectangle",
+                textOpacity = "mapData(zoom, 0.7, 1.5, 0, 1)",
             } },
             new { selector = ".group", style = new {
                 shape = "round-rectangle",

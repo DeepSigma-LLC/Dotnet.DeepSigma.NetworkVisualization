@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>DeepSigma.NetworkVisualization.Samples.ConsoleRunner</RootNamespace>
+    <AssemblyName>deepsigma-render</AssemblyName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CA1303;CA1062;CA1031</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Layout.Msagl\DeepSigma.NetworkVisualization.Layout.Msagl.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.Mermaid\DeepSigma.NetworkVisualization.Renderers.Mermaid.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.Dot\DeepSigma.NetworkVisualization.Renderers.Dot.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.Svg\DeepSigma.NetworkVisualization.Renderers.Svg.csproj" />
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.SkiaSharp\DeepSigma.NetworkVisualization.Renderers.SkiaSharp.csproj" />
+    <ProjectReference Include="..\DeepSigma.NetworkVisualization.Samples\DeepSigma.NetworkVisualization.Samples.csproj" />
+  </ItemGroup>
+
+</Project>

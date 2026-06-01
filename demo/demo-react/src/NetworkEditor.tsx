@@ -15,6 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { ReactFlowPayload } from 'deepsigma-network-core';
+import { payloadToReactFlowNodes, payloadToReactFlowEdges } from 'deepsigma-network-react';
 
 export interface NetworkEditorProps {
   sample: string;
@@ -30,47 +31,19 @@ export function NetworkEditor({ sample, theme, onSaved }: NetworkEditorProps) {
   const [status, setStatus] = useState<string>('');
   const [idCounter, setIdCounter] = useState(0);
 
-  // Fetch ReactFlow payload as the initial editor state.
+  const loadFromServer = useCallback(async () => {
+    const p: ReactFlowPayload = await fetch(`/api/samples/${sample}/reactflow?theme=${theme}`).then((r) => r.json());
+    setBg(p.theme.background);
+    setNodes(payloadToReactFlowNodes(p));
+    setEdges(payloadToReactFlowEdges(p));
+  }, [sample, theme]);
+
   useEffect(() => {
     setBusy(true);
-    fetch(`/api/samples/${sample}/reactflow?theme=${theme}`)
-      .then((r) => r.json())
-      .then((p: ReactFlowPayload) => {
-        setBg(p.theme.background);
-        setNodes(p.nodes.map((n) => ({
-          id: n.id,
-          position: n.position,
-          data: { label: n.data.label },
-          type: n.parentNode ? 'default' : 'default',
-          parentNode: n.parentNode,
-          extent: n.parentNode ? 'parent' : undefined,
-          style: {
-            background: (n.style.backgroundColor as string) ?? '#fff',
-            border: `${(n.style.borderWidth as number) ?? 1}px solid ${(n.style.borderColor as string) ?? '#999'}`,
-            color: (n.style.color as string) ?? '#000',
-            width: n.style.width as number | undefined,
-            height: n.style.height as number | undefined,
-            fontFamily: n.style.fontFamily as string | undefined,
-            fontSize: n.style.fontSize as number | undefined,
-          },
-        })));
-        setEdges(p.edges.map((e) => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          label: e.label,
-          type: e.type === 'smoothstep' ? 'smoothstep' : 'default',
-          markerEnd: e.markerEnd ? { type: MarkerType.ArrowClosed } : undefined,
-          style: {
-            stroke: (e.style.stroke as string) ?? '#888',
-            strokeWidth: (e.style.strokeWidth as number) ?? 1,
-            strokeDasharray: (e.style.strokeDasharray as string) ?? undefined,
-          },
-        })));
-        setBusy(false);
-      })
-      .catch(() => { setStatus('Load failed'); setBusy(false); });
-  }, [sample, theme]);
+    loadFromServer()
+      .catch(() => setStatus('Load failed'))
+      .finally(() => setBusy(false));
+  }, [loadFromServer]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((ns) => applyNodeChanges(changes, ns)), []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((es) => applyEdgeChanges(changes, es)), []);
@@ -99,7 +72,6 @@ export function NetworkEditor({ sample, theme, onSaved }: NetworkEditorProps) {
     const baseNet = baseEnv.network;
     const edited = {
       ...baseNet,
-      // Index original nodes for style preservation
       nodes: nodes.map((n) => {
         const original = baseNet.nodes.find((bn: { id: string }) => bn.id === n.id);
         return {
@@ -138,27 +110,7 @@ export function NetworkEditor({ sample, theme, onSaved }: NetworkEditorProps) {
     setStatus('Resetting…');
     await fetch(`/api/edit/${sample}`, { method: 'DELETE' });
     onSaved?.();
-    // Re-fetch the now-pristine payload by reloading the effect.
-    const p: ReactFlowPayload = await fetch(`/api/samples/${sample}/reactflow?theme=${theme}`).then((r) => r.json());
-    setBg(p.theme.background);
-    setNodes(p.nodes.map((n) => ({
-      id: n.id,
-      position: n.position,
-      data: { label: n.data.label },
-      parentNode: n.parentNode,
-      extent: n.parentNode ? 'parent' : undefined,
-      style: {
-        background: (n.style.backgroundColor as string) ?? '#fff',
-        border: `${(n.style.borderWidth as number) ?? 1}px solid ${(n.style.borderColor as string) ?? '#999'}`,
-        color: (n.style.color as string) ?? '#000',
-        width: n.style.width as number | undefined,
-        height: n.style.height as number | undefined,
-      },
-    })));
-    setEdges(p.edges.map((e) => ({
-      id: e.id, source: e.source, target: e.target, label: e.label,
-      markerEnd: e.markerEnd ? { type: MarkerType.ArrowClosed } : undefined,
-    })));
+    await loadFromServer();
     setStatus('Reset');
     setBusy(false);
     setTimeout(() => setStatus(''), 1800);

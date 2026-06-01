@@ -5,4 +5,5 @@ export { MermaidNetwork } from './MermaidNetwork';
 export { DotNetwork } from './DotNetwork';
 export { SigmaNetwork } from './SigmaNetwork';
 export { RendererFrame, type RendererState } from './RendererFrame';
+export { payloadToReactFlowNodes, payloadToReactFlowEdges } from './reactflowMapping';
 export * from 'deepsigma-network-core';
