@@ -11,6 +11,7 @@ public static class SampleNetworks
         ["social-network"] = SocialNetwork,
         ["clusters"] = Clusters,
         ["radial-taxonomy"] = RadialTaxonomy,
+        ["object-graph"] = ObjectGraphSample.Build,
     };
 
     public static Network OrgChart() => NetworkBuilder.Create()

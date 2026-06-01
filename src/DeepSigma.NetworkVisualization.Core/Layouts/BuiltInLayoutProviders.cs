@@ -189,6 +189,11 @@ public sealed class SimpleForceDirectedLayoutProvider : ILayoutProvider
     }
 }
 
+/// <summary>
+/// Registry mapping <see cref="LayoutAlgorithm"/> values to <see cref="ILayoutProvider"/> factories.
+/// Adapters (e.g. MSAGL) override entries via <see cref="Register"/>; renderers call <see cref="For(Network)"/>
+/// to obtain the right provider for a given network. The registry is process-wide.
+/// </summary>
 public static class LayoutProviders
 {
     private static readonly Dictionary<LayoutAlgorithm, Func<LayoutSettings, ILayoutProvider>> _factories = new()
@@ -205,13 +210,16 @@ public static class LayoutProviders
         [LayoutAlgorithm.Mds] = s => new SimpleForceDirectedLayoutProvider { Seed = s.RandomSeed ?? 42 },
     };
 
+    /// <summary>Resolve the provider for a network's declared <see cref="Network.Layout"/>.</summary>
     public static ILayoutProvider For(Network network) => For(network.Layout);
 
+    /// <summary>Resolve the provider for a specific <see cref="LayoutSettings"/>. Falls back to force-directed for unregistered algorithms.</summary>
     public static ILayoutProvider For(LayoutSettings settings)
         => _factories.TryGetValue(settings.Algorithm, out var factory)
             ? factory(settings)
             : new SimpleForceDirectedLayoutProvider { Seed = settings.RandomSeed ?? 42 };
 
+    /// <summary>Register or replace the factory for an algorithm. Used by adapter packages (e.g. the MSAGL adapter) to plug in alternative providers.</summary>
     public static void Register(LayoutAlgorithm algorithm, Func<LayoutSettings, ILayoutProvider> factory)
         => _factories[algorithm] = factory;
 }

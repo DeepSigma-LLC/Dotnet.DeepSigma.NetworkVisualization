@@ -1,5 +1,21 @@
 namespace DeepSigma.NetworkVisualization.Builders;
 
+/// <summary>
+/// Fluent builder for <see cref="Network"/>. Start with <see cref="Create"/>, chain configuration, finish with <see cref="Build"/>.
+/// <see cref="Build"/> validates structure (unique ids, edge endpoints exist, no group cycles, …) and throws
+/// <see cref="NetworkValidationException"/> with every error aggregated when it finds problems.
+/// </summary>
+/// <example>
+/// <code>
+/// var network = NetworkBuilder.Create()
+///     .Directed()
+///     .WithLayout(l => l.Hierarchical())
+///     .AddNode("a", n => n.Label("Alice"))
+///     .AddNode("b", n => n.Label("Bob"))
+///     .AddEdge("a", "b", e => e.Label("knows"))
+///     .Build();
+/// </code>
+/// </example>
 public sealed class NetworkBuilder
 {
     private bool _directed = true;

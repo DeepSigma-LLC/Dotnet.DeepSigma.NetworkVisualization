@@ -4,19 +4,30 @@ using System.Text.Json.Serialization;
 
 namespace DeepSigma.NetworkVisualization.Json;
 
+/// <summary>
+/// The one canonical JSON contract for <see cref="Network"/>. Produces and consumes a versioned envelope of the form
+/// <c>{ "format": "deepsigma.network", "version": "1.0", "network": { … } }</c>. <see cref="Importers.NetworkImporter.FromJson"/>
+/// is a thin wrapper around <see cref="Deserialize"/>.
+/// </summary>
 public static class NetworkJsonSerializer
 {
+    /// <summary>The format identifier embedded in the envelope.</summary>
     public const string FormatId = "deepsigma.network";
+
+    /// <summary>Schema version embedded in the envelope. Breaking changes will bump this.</summary>
     public const string FormatVersion = "1.0";
 
+    /// <summary>The configured <see cref="JsonSerializerOptions"/> instance used by serialize and deserialize. Reuse for consistency in adjacent code.</summary>
     public static readonly JsonSerializerOptions Options = CreateOptions();
 
+    /// <summary>Serialize a network to the canonical envelope.</summary>
     public static string Serialize(Network network)
     {
         var envelope = new NetworkEnvelope(FormatId, FormatVersion, network);
         return JsonSerializer.Serialize(envelope, Options);
     }
 
+    /// <summary>Deserialize the canonical envelope. Returns <c>null</c> if the input is empty/null JSON; throws on malformed JSON or schema mismatch.</summary>
     public static Network? Deserialize(string json)
     {
         var envelope = JsonSerializer.Deserialize<NetworkEnvelope>(json, Options);
