@@ -100,4 +100,35 @@ public class RendererTests
         Assert.IsType<TreeLayoutProvider>(LayoutProviders.For(new LayoutSettings { Algorithm = LayoutAlgorithm.Tree }));
         Assert.IsType<SimpleForceDirectedLayoutProvider>(LayoutProviders.For(new LayoutSettings { Algorithm = LayoutAlgorithm.ForceDirected }));
     }
+
+    [Fact]
+    public void EnsureLayout_populates_positions_when_missing()
+    {
+        var net = Samples.OrgChart();
+        Assert.Contains(net.Nodes, n => !n.Position.HasValue);
+        var positioned = net.EnsureLayout();
+        Assert.All(positioned.Nodes, n => Assert.NotNull(n.Position));
+    }
+
+    [Fact]
+    public void EnsureLayout_throws_when_autoApply_is_false_and_positions_missing()
+    {
+        var net = Samples.OrgChart();
+        Assert.Throws<InvalidOperationException>(() => net.EnsureLayout(autoApply: false));
+    }
+
+    [Fact]
+    public void MsaglLayouts_Register_overrides_Sugiyama_factory()
+    {
+        MsaglLayouts.Register();
+        try
+        {
+            var p = LayoutProviders.For(new LayoutSettings { Algorithm = LayoutAlgorithm.Sugiyama });
+            Assert.IsType<MsaglSugiyamaLayoutProvider>(p);
+        }
+        finally
+        {
+            LayoutProviders.Register(LayoutAlgorithm.Sugiyama, s => new TreeLayoutProvider { LevelGap = s.RankSpacing, SiblingGap = s.NodeSpacing });
+        }
+    }
 }

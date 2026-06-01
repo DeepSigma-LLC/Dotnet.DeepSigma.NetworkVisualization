@@ -16,14 +16,14 @@ public sealed class D3Renderer : IJsonNetworkRenderer
         var nodes = network.Nodes.Select(n => new
         {
             id = n.Id.Value,
-            label = n.Label ?? n.Id.Value,
+            label = n.ResolvedLabel(),
             group = n.GroupId,
             tooltip = n.Tooltip,
             fx = n.Position?.X,
             fy = n.Position?.Y,
-            shape = (n.Style?.Shape ?? NodeShape.Ellipse).ToString().ToLowerInvariant(),
-            fill = (n.Style?.Fill ?? theme.DefaultNodeFill).ToHex(),
-            stroke = (n.Style?.Stroke ?? theme.DefaultNodeStroke).ToHex(),
+            shape = n.ResolvedShape().ToString().ToLowerInvariant(),
+            fill = n.ResolvedFill(theme).ToHex(),
+            stroke = n.ResolvedStroke(theme).ToHex(),
             radius = ComputeRadius(n),
             data = n.Data,
         });
@@ -35,9 +35,9 @@ public sealed class D3Renderer : IJsonNetworkRenderer
             target = e.Target.Value,
             label = e.Label,
             value = e.Weight ?? 1.0,
-            stroke = (e.Style?.Stroke ?? theme.DefaultEdgeStroke).ToHex(),
-            strokeWidth = e.Style?.StrokeWidth ?? 1.0,
-            lineStyle = (e.Style?.LineStyle ?? LineStyle.Solid).ToString().ToLowerInvariant(),
+            stroke = e.ResolvedStroke(theme).ToHex(),
+            strokeWidth = e.ResolvedStrokeWidth(),
+            lineStyle = e.ResolvedLineStyle().ToString().ToLowerInvariant(),
             data = e.Data,
         });
 
@@ -73,8 +73,7 @@ public sealed class D3Renderer : IJsonNetworkRenderer
 
     private static double ComputeRadius(Node n)
     {
-        var w = n.Style?.Width ?? 60;
-        var h = n.Style?.Height ?? 40;
+        var (w, h) = n.ResolvedSize(60, 40);
         return Math.Max(8, Math.Min(w, h) / 4);
     }
 }

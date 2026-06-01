@@ -42,8 +42,8 @@ public sealed class MermaidRenderer : INetworkRenderer<string>
             var parts = new List<string>();
             if (s.Stroke is { } c) parts.Add($"stroke:{c.ToHex()}");
             parts.Add($"stroke-width:{s.StrokeWidth.ToString(CultureInfo.InvariantCulture)}px");
-            if (s.LineStyle == LineStyle.Dashed) parts.Add("stroke-dasharray:5 5");
-            else if (s.LineStyle == LineStyle.Dotted) parts.Add("stroke-dasharray:1 3");
+            if (s.LineStyle == LineStyle.Dashed) parts.Add("stroke-dasharray:6 4");
+            else if (s.LineStyle == LineStyle.Dotted) parts.Add("stroke-dasharray:2 3");
             sb.Append("    linkStyle ").Append(i).Append(' ').AppendLine(string.Join(',', parts));
         }
 
@@ -86,8 +86,8 @@ public sealed class MermaidRenderer : INetworkRenderer<string>
     private static string NodeDecl(Node n)
     {
         var id = EscapeId(n.Id.Value);
-        var label = EscapeLabel(n.Label ?? n.Id.Value);
-        var shape = n.Style?.Shape ?? NodeShape.Ellipse;
+        var label = EscapeLabel(n.ResolvedLabel());
+        var shape = n.ResolvedShape();
         return shape switch
         {
             NodeShape.Rectangle => $"{id}[\"{label}\"]",
@@ -106,8 +106,8 @@ public sealed class MermaidRenderer : INetworkRenderer<string>
     {
         var source = EscapeId(e.Source.Value);
         var target = EscapeId(e.Target.Value);
-        var style = e.Style?.LineStyle ?? LineStyle.Solid;
-        var hasArrow = directed && (e.Style?.TargetArrow ?? ArrowStyle.Triangle) != ArrowStyle.None;
+        var style = e.ResolvedLineStyle();
+        var hasArrow = e.HasArrowHead(directed);
         var connector = (style, hasArrow) switch
         {
             (LineStyle.Dashed, true) => "-.->",

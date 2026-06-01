@@ -11,10 +11,22 @@ public sealed class CytoscapeRenderer : IJsonNetworkRenderer
 
     public string Render(Network network)
     {
-        var groupNodes = network.Groups.Select(g => (object)new
+        var theme = network.Theme;
+        var groupNodes = network.Groups.Select(g =>
         {
-            data = new { id = g.Id, label = g.Label ?? g.Id, parent = g.ParentGroupId, isGroup = true },
-            classes = "group",
+            object? perGroupStyle = (g.Style?.Fill is { } f || g.Style?.Stroke is { } s)
+                ? new
+                {
+                    backgroundColor = (g.Style?.Fill ?? theme.DefaultNodeFill).ToHex(),
+                    borderColor = (g.Style?.Stroke ?? theme.DefaultNodeStroke).ToHex(),
+                }
+                : null;
+            return (object)new
+            {
+                data = new { id = g.Id, label = g.Label ?? g.Id, parent = g.ParentGroupId, isGroup = true },
+                classes = "group",
+                style = perGroupStyle,
+            };
         });
 
         var dataNodes = network.Nodes.Select(n =>
@@ -25,7 +37,7 @@ public sealed class CytoscapeRenderer : IJsonNetworkRenderer
                 data = new
                 {
                     id = n.Id.Value,
-                    label = n.Label ?? n.Id.Value,
+                    label = n.ResolvedLabel(),
                     parent = n.GroupId,
                     tooltip = n.Tooltip,
                     custom = n.Data,
@@ -49,7 +61,6 @@ public sealed class CytoscapeRenderer : IJsonNetworkRenderer
             classes = e.Style?.CssClass,
         });
 
-        var theme = network.Theme;
         var style = new object[]
         {
             new { selector = "node", style = new {
@@ -78,9 +89,11 @@ public sealed class CytoscapeRenderer : IJsonNetworkRenderer
             } },
             new { selector = ".group", style = new {
                 shape = "round-rectangle",
-                backgroundOpacity = 0.1,
-                borderColor = "#999",
+                backgroundOpacity = 0.12,
+                backgroundColor = theme.DefaultNodeFill.ToHex(),
+                borderColor = theme.DefaultNodeStroke.ToHex(),
                 borderStyle = "dashed",
+                color = theme.DefaultLabelColor.ToHex(),
                 label = "data(label)",
             } },
         };

@@ -28,7 +28,11 @@ public sealed class SvgRenderer(SvgRenderOptions? options = null) : INetworkRend
 
         var positions = positioned.Nodes
             .Where(n => n.Position.HasValue)
-            .Select(n => (n, p: n.Position!.Value, w: n.Style?.Width ?? _opt.DefaultNodeWidth, h: n.Style?.Height ?? _opt.DefaultNodeHeight))
+            .Select(n =>
+            {
+                var (w, h) = n.ResolvedSize(_opt.DefaultNodeWidth, _opt.DefaultNodeHeight);
+                return (n, p: n.Position!.Value, w, h);
+            })
             .ToArray();
 
         var minX = positions.Min(t => t.p.X - t.w / 2);
@@ -76,26 +80,19 @@ public sealed class SvgRenderer(SvgRenderOptions? options = null) : INetworkRend
         return sb.ToString();
     }
 
-    private Network EnsureLayout(Network network)
-    {
-        if (network.Nodes.All(n => n.Position.HasValue)) return network;
-        if (!_opt.AutoLayoutIfMissing)
-            throw new InvalidOperationException("SvgRenderer requires node positions. Apply a layout provider first or set SvgRenderOptions.AutoLayoutIfMissing = true.");
-        return LayoutProviders.For(network).ApplyLayout(network);
-    }
+    private Network EnsureLayout(Network network) => network.EnsureLayout(_opt.AutoLayoutIfMissing);
 
     private static void RenderEdge(StringBuilder sb, Edge e, (Node n, Position p, double w, double h) src, (Node n, Position p, double w, double h) dst, Theme theme, bool directed)
     {
-        var stroke = e.Style?.Stroke?.ToHex() ?? theme.DefaultEdgeStroke.ToHex();
-        var strokeWidth = (e.Style?.StrokeWidth ?? 1.0).ToString(CultureInfo.InvariantCulture);
-        var dashArray = e.Style?.LineStyle switch
+        var stroke = e.ResolvedStroke(theme).ToHex();
+        var strokeWidth = e.ResolvedStrokeWidth().ToString(CultureInfo.InvariantCulture);
+        var dashArray = e.ResolvedLineStyle() switch
         {
             LineStyle.Dashed => " stroke-dasharray=\"6 4\"",
             LineStyle.Dotted => " stroke-dasharray=\"2 3\"",
             _ => string.Empty
         };
-        var arrow = directed && (e.Style?.TargetArrow ?? ArrowStyle.Triangle) != ArrowStyle.None
-            ? " marker-end=\"url(#arrow)\"" : string.Empty;
+        var arrow = e.HasArrowHead(directed) ? " marker-end=\"url(#arrow)\"" : string.Empty;
 
         sb.Append("      <line x1=\"").Append(F(src.p.X)).Append("\" y1=\"").Append(F(src.p.Y))
           .Append("\" x2=\"").Append(F(dst.p.X)).Append("\" y2=\"").Append(F(dst.p.Y))
@@ -105,7 +102,7 @@ public sealed class SvgRenderer(SvgRenderOptions? options = null) : INetworkRend
         {
             var mx = (src.p.X + dst.p.X) / 2;
             var my = (src.p.Y + dst.p.Y) / 2;
-            var color = (e.Style?.LabelColor ?? theme.DefaultLabelColor).ToHex();
+            var color = e.ResolvedLabelColor(theme).ToHex();
             sb.Append("      <text x=\"").Append(F(mx)).Append("\" y=\"").Append(F(my))
               .Append("\" fill=\"").Append(color).Append("\" font-family=\"").Append(XmlEscape(theme.DefaultFontFamily))
               .Append("\" font-size=\"").Append(F(e.Style?.FontSize ?? 10)).Append("\" text-anchor=\"middle\" dominant-baseline=\"central\">")
@@ -115,13 +112,13 @@ public sealed class SvgRenderer(SvgRenderOptions? options = null) : INetworkRend
 
     private static void RenderNode(StringBuilder sb, Node n, Position p, double w, double h, Theme theme)
     {
-        var fill = (n.Style?.Fill ?? theme.DefaultNodeFill).ToHex();
-        var stroke = (n.Style?.Stroke ?? theme.DefaultNodeStroke).ToHex();
-        var strokeWidth = (n.Style?.StrokeWidth ?? 1.0).ToString(CultureInfo.InvariantCulture);
-        var labelColor = (n.Style?.LabelColor ?? theme.DefaultLabelColor).ToHex();
-        var fontFamily = XmlEscape(n.Style?.FontFamily ?? theme.DefaultFontFamily);
-        var fontSize = (n.Style?.FontSize ?? theme.DefaultFontSize).ToString(CultureInfo.InvariantCulture);
-        var shape = n.Style?.Shape ?? NodeShape.Ellipse;
+        var fill = n.ResolvedFill(theme).ToHex();
+        var stroke = n.ResolvedStroke(theme).ToHex();
+        var strokeWidth = n.ResolvedStrokeWidth().ToString(CultureInfo.InvariantCulture);
+        var labelColor = n.ResolvedLabelColor(theme).ToHex();
+        var fontFamily = XmlEscape(n.ResolvedFontFamily(theme));
+        var fontSize = n.ResolvedFontSize(theme).ToString(CultureInfo.InvariantCulture);
+        var shape = n.ResolvedShape();
 
         switch (shape)
         {

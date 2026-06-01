@@ -10,18 +10,84 @@ import type { ReactFlowPayload, CytoscapePayload, D3Payload } from 'deepsigma-ne
 
 interface SampleInfo { name: string; title: string; nodeCount: number; edgeCount: number; }
 
-type TabKey = 'reactflow' | 'cytoscape' | 'd3' | 'mermaid' | 'dot' | 'svg' | 'png' | 'core';
+type ContentType = 'json' | 'text' | 'binary-url';
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'reactflow', label: 'ReactFlow' },
-  { key: 'cytoscape', label: 'Cytoscape.js' },
-  { key: 'd3',        label: 'D3' },
-  { key: 'mermaid',   label: 'Mermaid' },
-  { key: 'dot',       label: 'GraphViz DOT' },
-  { key: 'svg',       label: 'SVG' },
-  { key: 'png',       label: 'PNG (Skia)' },
-  { key: 'core',      label: 'Core JSON' },
-];
+interface TabSpec {
+  label: string;
+  contentType: ContentType;
+  render: (payload: unknown) => ReactNode;
+}
+
+const TAB_CONFIG = {
+  reactflow: {
+    label: 'ReactFlow',
+    contentType: 'json',
+    render: (p) => (
+      <div style={{ width: '100%', height: '100%' }}>
+        <ReactFlowNetwork data={p as ReactFlowPayload} height="100%" />
+      </div>
+    ),
+  },
+  cytoscape: {
+    label: 'Cytoscape.js',
+    contentType: 'json',
+    render: (p) => <CytoscapeNetwork data={p as CytoscapePayload} height="100%" />,
+  },
+  d3: {
+    label: 'D3',
+    contentType: 'json',
+    render: (p) => <D3Network data={p as D3Payload} height={650} width={1100} />,
+  },
+  mermaid: {
+    label: 'Mermaid',
+    contentType: 'text',
+    render: (p) => (
+      <>
+        <div className="panel-title">Rendered Mermaid (text input below)</div>
+        <MermaidNetwork text={p as string} />
+        <RawDetails label="raw mermaid" text={p as string} />
+      </>
+    ),
+  },
+  dot: {
+    label: 'GraphViz DOT',
+    contentType: 'text',
+    render: (p) => (
+      <>
+        <div className="panel-title">Rendered GraphViz (DOT source below)</div>
+        <DotNetwork text={p as string} />
+        <RawDetails label="raw dot" text={p as string} />
+      </>
+    ),
+  },
+  svg: {
+    label: 'SVG',
+    contentType: 'text',
+    render: (p) => <div className="svg-host" dangerouslySetInnerHTML={{ __html: p as string }} />,
+  },
+  png: {
+    label: 'PNG (Skia)',
+    contentType: 'binary-url',
+    render: (p) => <div className="png-host"><img src={p as string} alt="rendered network" /></div>,
+  },
+  core: {
+    label: 'Core JSON',
+    contentType: 'json',
+    render: (p) => <pre className="code">{JSON.stringify(p, null, 2)}</pre>,
+  },
+} satisfies Record<string, TabSpec>;
+
+type TabKey = keyof typeof TAB_CONFIG;
+const TAB_KEYS = Object.keys(TAB_CONFIG) as TabKey[];
+
+function RawDetails({ label, text }: { label: string; text: string }) {
+  return (
+    <details style={{ marginTop: 12 }}>
+      <summary style={{ cursor: 'pointer', color: '#64748b' }}>{label}</summary>
+      <pre className="code" style={{ height: 220 }}>{text}</pre>
+    </details>
+  );
+}
 
 class PanelErrorBoundary extends Component<{ resetKey: string; children: ReactNode }, { err: Error | null }> {
   state = { err: null as Error | null };
@@ -74,9 +140,9 @@ export function App() {
       </aside>
       <main className="main">
         <div className="tabs">
-          {TABS.map((t) => (
-            <button key={t.key} className={`tab ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
-              {t.label}
+          {TAB_KEYS.map((k) => (
+            <button key={k} className={`tab ${tab === k ? 'active' : ''}`} onClick={() => setTab(k)}>
+              {TAB_CONFIG[k].label}
             </button>
           ))}
         </div>
@@ -93,67 +159,31 @@ export function App() {
 }
 
 function Panel({ sample, tab }: { sample: string; tab: TabKey }) {
-  const [payload, setPayload] = useState<string | object | null>(null);
+  const [payload, setPayload] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
+  const cfg = TAB_CONFIG[tab];
 
   useEffect(() => {
     setLoading(true);
     setPayload(null);
     const url = `/api/samples/${sample}/${tab}`;
-    const isJson = tab === 'reactflow' || tab === 'cytoscape' || tab === 'd3' || tab === 'core';
-    const isText = tab === 'mermaid' || tab === 'dot' || tab === 'svg';
-    const isBinary = tab === 'png';
-
     const ctrl = new AbortController();
-    if (isJson) {
-      fetch(url, { signal: ctrl.signal }).then((r) => r.json())
-        .then((d) => { setPayload(d); setLoading(false); }).catch(() => {});
-    } else if (isText) {
-      fetch(url, { signal: ctrl.signal }).then((r) => r.text())
-        .then((d) => { setPayload(d); setLoading(false); }).catch(() => {});
-    } else if (isBinary) {
+
+    if (cfg.contentType === 'binary-url') {
       setPayload(url);
       setLoading(false);
+    } else {
+      const parse = cfg.contentType === 'json'
+        ? (r: Response) => r.json()
+        : (r: Response) => r.text();
+      fetch(url, { signal: ctrl.signal })
+        .then(parse)
+        .then((d) => { setPayload(d); setLoading(false); })
+        .catch(() => {});
     }
     return () => ctrl.abort();
-  }, [sample, tab]);
+  }, [sample, tab, cfg.contentType]);
 
   if (loading || payload === null) return <div className="loading">Loading…</div>;
-
-  switch (tab) {
-    case 'reactflow':
-      return <div style={{ width: '100%', height: '100%' }}><ReactFlowNetwork data={payload as ReactFlowPayload} height="100%" /></div>;
-    case 'cytoscape':
-      return <CytoscapeNetwork data={payload as CytoscapePayload} height="100%" />;
-    case 'd3':
-      return <D3Network data={payload as D3Payload} height={650} width={1100} />;
-    case 'mermaid':
-      return (
-        <>
-          <div className="panel-title">Rendered Mermaid (text input below)</div>
-          <MermaidNetwork text={payload as string} />
-          <details style={{ marginTop: 12 }}>
-            <summary style={{ cursor: 'pointer', color: '#64748b' }}>raw mermaid</summary>
-            <pre className="code" style={{ height: 220 }}>{payload as string}</pre>
-          </details>
-        </>
-      );
-    case 'svg':
-      return <div className="svg-host" dangerouslySetInnerHTML={{ __html: payload as string }} />;
-    case 'png':
-      return <div className="png-host"><img src={payload as string} alt="rendered network" /></div>;
-    case 'dot':
-      return (
-        <>
-          <div className="panel-title">Rendered GraphViz (DOT source below)</div>
-          <DotNetwork text={payload as string} />
-          <details style={{ marginTop: 12 }}>
-            <summary style={{ cursor: 'pointer', color: '#64748b' }}>raw dot</summary>
-            <pre className="code" style={{ height: 220 }}>{payload as string}</pre>
-          </details>
-        </>
-      );
-    case 'core':
-      return <pre className="code">{JSON.stringify(payload, null, 2)}</pre>;
-  }
+  return <>{cfg.render(payload)}</>;
 }

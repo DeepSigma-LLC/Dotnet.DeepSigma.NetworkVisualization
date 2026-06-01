@@ -28,7 +28,11 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
 
         var laidOut = positioned.Nodes
             .Where(n => n.Position.HasValue)
-            .Select(n => (n, p: n.Position!.Value, w: n.Style?.Width ?? _opt.DefaultNodeWidth, h: n.Style?.Height ?? _opt.DefaultNodeHeight))
+            .Select(n =>
+            {
+                var (w, h) = n.ResolvedSize(_opt.DefaultNodeWidth, _opt.DefaultNodeHeight);
+                return (n, p: n.Position!.Value, w, h);
+            })
             .ToArray();
 
         if (laidOut.Length == 0) return EmptyImage();
@@ -54,9 +58,9 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
         foreach (var e in positioned.Edges)
         {
             if (!byId.TryGetValue(e.Source.Value, out var src) || !byId.TryGetValue(e.Target.Value, out var dst)) continue;
-            edgePaint.Color = ToSk(e.Style?.Stroke ?? theme.DefaultEdgeStroke);
-            edgePaint.StrokeWidth = (float)(e.Style?.StrokeWidth ?? 1.0);
-            edgePaint.PathEffect = e.Style?.LineStyle switch
+            edgePaint.Color = ToSk(e.ResolvedStroke(theme));
+            edgePaint.StrokeWidth = (float)e.ResolvedStrokeWidth();
+            edgePaint.PathEffect = e.ResolvedLineStyle() switch
             {
                 LineStyle.Dashed => SKPathEffect.CreateDash([6f, 4f], 0),
                 LineStyle.Dotted => SKPathEffect.CreateDash([2f, 3f], 0),
@@ -64,14 +68,14 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
             };
             canvas.DrawLine((float)src.p.X, (float)src.p.Y, (float)dst.p.X, (float)dst.p.Y, edgePaint);
 
-            if (positioned.Directed && (e.Style?.TargetArrow ?? ArrowStyle.Triangle) != ArrowStyle.None)
+            if (e.HasArrowHead(positioned.Directed))
                 DrawArrowHead(canvas, src.p, dst.p, edgePaint.Color);
 
             if (!string.IsNullOrEmpty(e.Label))
             {
-                var color = e.Style?.LabelColor ?? theme.DefaultLabelColor;
+                var color = e.ResolvedLabelColor(theme);
                 DrawText(canvas, e.Label, (float)((src.p.X + dst.p.X) / 2), (float)((src.p.Y + dst.p.Y) / 2),
-                    (float)(e.Style?.FontSize ?? 10), theme.DefaultFontFamily, color);
+                    (float)e.ResolvedFontSize(), theme.DefaultFontFamily, color);
             }
         }
 
@@ -83,20 +87,14 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
         return data.ToArray();
     }
 
-    private Network EnsureLayout(Network network)
-    {
-        if (network.Nodes.All(n => n.Position.HasValue)) return network;
-        if (!_opt.AutoLayoutIfMissing)
-            throw new InvalidOperationException("SkiaRenderer requires node positions.");
-        return LayoutProviders.For(network).ApplyLayout(network);
-    }
+    private Network EnsureLayout(Network network) => network.EnsureLayout(_opt.AutoLayoutIfMissing);
 
     private static void DrawNode(SKCanvas canvas, Node n, Position p, double w, double h, Theme theme)
     {
-        var fill = n.Style?.Fill ?? theme.DefaultNodeFill;
-        var stroke = n.Style?.Stroke ?? theme.DefaultNodeStroke;
-        var strokeWidth = (float)(n.Style?.StrokeWidth ?? 1.0);
-        var shape = n.Style?.Shape ?? NodeShape.Ellipse;
+        var fill = n.ResolvedFill(theme);
+        var stroke = n.ResolvedStroke(theme);
+        var strokeWidth = (float)n.ResolvedStrokeWidth();
+        var shape = n.ResolvedShape();
 
         using var fillPaint = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill, Color = ToSk(fill) };
         using var strokePaint = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Stroke, Color = ToSk(stroke), StrokeWidth = strokeWidth };
@@ -174,10 +172,8 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
             }
         }
 
-        var label = n.Label ?? n.Id.Value;
-        var labelColor = n.Style?.LabelColor ?? theme.DefaultLabelColor;
-        DrawText(canvas, label, cx, cy, (float)(n.Style?.FontSize ?? theme.DefaultFontSize),
-            n.Style?.FontFamily ?? theme.DefaultFontFamily, labelColor);
+        DrawText(canvas, n.ResolvedLabel(), cx, cy, (float)n.ResolvedFontSize(theme),
+            n.ResolvedFontFamily(theme), n.ResolvedLabelColor(theme));
     }
 
     private static void DrawArrowHead(SKCanvas canvas, Position from, Position to, SKColor color)

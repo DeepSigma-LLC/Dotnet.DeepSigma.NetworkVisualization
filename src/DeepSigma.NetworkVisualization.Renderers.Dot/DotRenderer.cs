@@ -79,7 +79,7 @@ public sealed class DotRenderer : INetworkRenderer<string>
 
     private static string NodeAttrs(Node n)
     {
-        var parts = new List<string> { $"label={Quote(n.Label ?? n.Id.Value)}" };
+        var parts = new List<string> { $"label={Quote(n.ResolvedLabel())}" };
         var s = n.Style;
         if (s is not null)
         {

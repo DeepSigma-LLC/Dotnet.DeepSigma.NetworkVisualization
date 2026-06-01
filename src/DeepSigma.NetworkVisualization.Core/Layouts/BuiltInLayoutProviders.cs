@@ -191,15 +191,26 @@ public sealed class SimpleForceDirectedLayoutProvider : ILayoutProvider
 
 public static class LayoutProviders
 {
+    private static readonly Dictionary<LayoutAlgorithm, Func<LayoutSettings, ILayoutProvider>> _factories = new()
+    {
+        [LayoutAlgorithm.None] = _ => new NoLayoutProvider(),
+        [LayoutAlgorithm.Grid] = _ => new GridLayoutProvider(),
+        [LayoutAlgorithm.Circular] = _ => new CircularLayoutProvider(),
+        [LayoutAlgorithm.Tree] = s => new TreeLayoutProvider { LevelGap = s.RankSpacing, SiblingGap = s.NodeSpacing },
+        [LayoutAlgorithm.Hierarchical] = s => new TreeLayoutProvider { LevelGap = s.RankSpacing, SiblingGap = s.NodeSpacing },
+        [LayoutAlgorithm.ForceDirected] = s => new SimpleForceDirectedLayoutProvider { Seed = s.RandomSeed ?? 42 },
+        [LayoutAlgorithm.Sugiyama] = s => new TreeLayoutProvider { LevelGap = s.RankSpacing, SiblingGap = s.NodeSpacing },
+        [LayoutAlgorithm.Radial] = s => new SimpleForceDirectedLayoutProvider { Seed = s.RandomSeed ?? 42 },
+        [LayoutAlgorithm.Mds] = s => new SimpleForceDirectedLayoutProvider { Seed = s.RandomSeed ?? 42 },
+    };
+
     public static ILayoutProvider For(Network network) => For(network.Layout);
 
-    public static ILayoutProvider For(LayoutSettings settings) => settings.Algorithm switch
-    {
-        LayoutAlgorithm.None => new NoLayoutProvider(),
-        LayoutAlgorithm.Grid => new GridLayoutProvider(),
-        LayoutAlgorithm.Circular => new CircularLayoutProvider(),
-        LayoutAlgorithm.Tree or LayoutAlgorithm.Hierarchical => new TreeLayoutProvider { LevelGap = settings.RankSpacing, SiblingGap = settings.NodeSpacing },
-        LayoutAlgorithm.ForceDirected => new SimpleForceDirectedLayoutProvider { Seed = settings.RandomSeed ?? 42 },
-        _ => new SimpleForceDirectedLayoutProvider { Seed = settings.RandomSeed ?? 42 },
-    };
+    public static ILayoutProvider For(LayoutSettings settings)
+        => _factories.TryGetValue(settings.Algorithm, out var factory)
+            ? factory(settings)
+            : new SimpleForceDirectedLayoutProvider { Seed = settings.RandomSeed ?? 42 };
+
+    public static void Register(LayoutAlgorithm algorithm, Func<LayoutSettings, ILayoutProvider> factory)
+        => _factories[algorithm] = factory;
 }

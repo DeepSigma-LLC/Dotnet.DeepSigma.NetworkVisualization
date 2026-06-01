@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import mermaid from 'mermaid';
+import { RendererFrame, type RendererState } from './RendererFrame';
 
 let inited = false;
 
@@ -9,9 +10,7 @@ export interface MermaidNetworkProps {
 }
 
 export function MermaidNetwork({ text, theme = 'default' }: MermaidNetworkProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [svg, setSvg] = useState<string>('');
-  const [err, setErr] = useState<string | null>(null);
+  const [state, setState] = useState<RendererState>({ kind: 'loading', label: 'Rendering Mermaid…' });
 
   useEffect(() => {
     if (!inited) {
@@ -19,13 +18,18 @@ export function MermaidNetwork({ text, theme = 'default' }: MermaidNetworkProps)
       inited = true;
     }
     let cancelled = false;
+    setState({ kind: 'loading', label: 'Rendering Mermaid…' });
     const id = `mmd-${Math.random().toString(36).slice(2)}`;
     mermaid.render(id, text)
-      .then((result) => { if (!cancelled) { setSvg(result.svg); setErr(null); } })
-      .catch((e: Error) => { if (!cancelled) { setErr(e.message); } });
+      .then((result) => {
+        if (cancelled) return;
+        setState({ kind: 'ready', content: <div dangerouslySetInnerHTML={{ __html: result.svg }} /> });
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setState({ kind: 'error', message: e.message });
+      });
     return () => { cancelled = true; };
   }, [text, theme]);
 
-  if (err) return <pre style={{ color: 'crimson' }}>{err}</pre>;
-  return <div ref={ref} dangerouslySetInnerHTML={{ __html: svg }} />;
+  return <RendererFrame state={state} />;
 }

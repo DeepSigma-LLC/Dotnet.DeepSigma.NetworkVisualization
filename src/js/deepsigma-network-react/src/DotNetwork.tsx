@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Graphviz } from '@hpcc-js/wasm-graphviz';
+import { RendererFrame, type RendererState } from './RendererFrame';
 
 let graphvizPromise: Promise<Graphviz> | null = null;
 function loadGraphviz() {
@@ -13,30 +14,26 @@ export interface DotNetworkProps {
 }
 
 export function DotNetwork({ text, engine = 'dot' }: DotNetworkProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [svg, setSvg] = useState<string>('');
-  const [err, setErr] = useState<string | null>(null);
+  const [state, setState] = useState<RendererState>({ kind: 'loading', label: 'Loading GraphViz…' });
 
   useEffect(() => {
     let cancelled = false;
-    setErr(null);
+    setState({ kind: 'loading', label: 'Loading GraphViz…' });
     loadGraphviz()
       .then((gv) => {
         if (cancelled) return;
         try {
-          const out = gv.layout(text, 'svg', engine);
-          setSvg(out);
+          const svg = gv.layout(text, 'svg', engine);
+          setState({ kind: 'ready', content: <div dangerouslySetInnerHTML={{ __html: svg }} /> });
         } catch (e) {
-          setErr(e instanceof Error ? e.message : String(e));
+          setState({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
         }
       })
       .catch((e: Error) => {
-        if (!cancelled) setErr(e.message);
+        if (!cancelled) setState({ kind: 'error', message: e.message });
       });
     return () => { cancelled = true; };
   }, [text, engine]);
 
-  if (err) return <pre style={{ color: 'crimson', whiteSpace: 'pre-wrap' }}>{err}</pre>;
-  if (!svg) return <div style={{ color: '#64748b', fontStyle: 'italic' }}>Loading GraphViz…</div>;
-  return <div ref={containerRef} dangerouslySetInnerHTML={{ __html: svg }} />;
+  return <RendererFrame state={state} />;
 }

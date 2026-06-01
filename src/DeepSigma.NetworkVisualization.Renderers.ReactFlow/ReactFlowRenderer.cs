@@ -7,38 +7,34 @@ namespace DeepSigma.NetworkVisualization.Renderers.ReactFlow;
 
 public sealed class ReactFlowRenderer : IJsonNetworkRenderer
 {
+    private const double GroupPaddingX = 16;
+    private const double GroupPaddingTop = 32;
+    private const double GroupPaddingBottom = 16;
+    private const double DefaultNodeWidth = 100;
+    private const double DefaultNodeHeight = 50;
+
     public string FormatId => "reactflow";
     public string FormatVersion => "1.0";
     public bool AutoLayoutIfMissing { get; init; } = true;
 
     public string Render(Network network)
     {
-        var positioned = network.Nodes.All(n => n.Position.HasValue) || !AutoLayoutIfMissing
-            ? network
-            : LayoutProviders.For(network).ApplyLayout(network);
+        var positioned = network.EnsureLayout(AutoLayoutIfMissing);
 
         var groupNodes = positioned.Groups.Select(g =>
         {
-            var children = positioned.Nodes
-                .Where(n => n.GroupId == g.Id && n.Position.HasValue)
-                .Select(n => (n.Position!.Value, w: n.Style?.Width ?? 100, h: n.Style?.Height ?? 50))
-                .ToArray();
-            var hasChildren = children.Length > 0;
-            var minX = hasChildren ? children.Min(c => c.Value.X - c.w / 2) - 16 : 0;
-            var minY = hasChildren ? children.Min(c => c.Value.Y - c.h / 2) - 32 : 0;
-            var maxX = hasChildren ? children.Max(c => c.Value.X + c.w / 2) + 16 : 200;
-            var maxY = hasChildren ? children.Max(c => c.Value.Y + c.h / 2) + 16 : 100;
+            var box = ComputeGroupBox(positioned, g.Id);
             return (object)new
             {
                 id = g.Id,
-                position = new { x = minX, y = minY },
+                position = new { x = box.X, y = box.Y },
                 data = new { label = g.Label ?? g.Id },
                 type = "group",
                 parentNode = g.ParentGroupId,
                 style = new
                 {
-                    width = maxX - minX,
-                    height = maxY - minY,
+                    width = box.Width,
+                    height = box.Height,
                     backgroundColor = "rgba(148,163,184,0.08)",
                     border = "1px dashed #94a3b8",
                     borderRadius = 8,
@@ -49,19 +45,16 @@ public sealed class ReactFlowRenderer : IJsonNetworkRenderer
 
         var dataNodes = positioned.Nodes.Select(n =>
         {
-            var pos = n.Position ?? new Position(0, 0);
-            var parentPos = n.GroupId is { } gid ? positioned.Nodes
-                .Where(other => other.GroupId == gid && other.Position.HasValue)
-                .Select(other => (Position?)other.Position).FirstOrDefault() : null;
-            (double offX, double offY) = n.GroupId is { } groupId
-                ? GroupOffset(positioned, groupId)
-                : (0, 0);
+            var pos = n.Position ?? Position.Origin;
+            var (offX, offY) = n.GroupId is { } groupId
+                ? (ComputeGroupBox(positioned, groupId).X, ComputeGroupBox(positioned, groupId).Y)
+                : (0d, 0d);
             return (object)new
             {
                 id = n.Id.Value,
                 position = new { x = pos.X - offX, y = pos.Y - offY },
-                data = new { label = n.Label ?? n.Id.Value, tooltip = n.Tooltip, custom = n.Data },
-                type = MapNodeType(n.Style?.Shape ?? NodeShape.Ellipse),
+                data = new { label = n.ResolvedLabel(), tooltip = n.Tooltip, custom = n.Data },
+                type = MapNodeType(n.ResolvedShape()),
                 parentNode = n.GroupId,
                 extent = n.GroupId is null ? null : "parent",
                 style = NodeStyleDto(n, positioned.Theme),
@@ -82,10 +75,9 @@ public sealed class ReactFlowRenderer : IJsonNetworkRenderer
                 source = e.Source.Value,
                 target = e.Target.Value,
                 label = e.Label,
-                type = (e.Style?.LineStyle ?? LineStyle.Solid) == LineStyle.Solid ? "default" : "smoothstep",
+                type = e.ResolvedLineStyle() == LineStyle.Solid ? "default" : "smoothstep",
                 animated = false,
-                markerEnd = positioned.Directed && (e.Style?.TargetArrow ?? ArrowStyle.Triangle) != ArrowStyle.None
-                    ? new { type = "arrowclosed" } : null,
+                markerEnd = e.HasArrowHead(positioned.Directed) ? new { type = "arrowclosed" } : null,
                 style = EdgeStyleDto(e, positioned.Theme),
                 data = e.Data,
             }),
@@ -95,16 +87,24 @@ public sealed class ReactFlowRenderer : IJsonNetworkRenderer
         return JsonSerializer.Serialize(payload, NetworkJsonSerializer.Options);
     }
 
-    private static (double X, double Y) GroupOffset(Network net, string groupId)
+    private static (double X, double Y, double Width, double Height) ComputeGroupBox(Network net, string groupId)
     {
         var children = net.Nodes
             .Where(n => n.GroupId == groupId && n.Position.HasValue)
-            .Select(n => (n.Position!.Value, w: n.Style?.Width ?? 100, h: n.Style?.Height ?? 50))
+            .Select(n =>
+            {
+                var (w, h) = n.ResolvedSize(DefaultNodeWidth, DefaultNodeHeight);
+                return (Pos: n.Position!.Value, W: w, H: h);
+            })
             .ToArray();
-        if (children.Length == 0) return (0, 0);
-        var minX = children.Min(c => c.Value.X - c.w / 2) - 16;
-        var minY = children.Min(c => c.Value.Y - c.h / 2) - 32;
-        return (minX, minY);
+
+        if (children.Length == 0) return (0, 0, 200, 100);
+
+        var minX = children.Min(c => c.Pos.X - c.W / 2) - GroupPaddingX;
+        var minY = children.Min(c => c.Pos.Y - c.H / 2) - GroupPaddingTop;
+        var maxX = children.Max(c => c.Pos.X + c.W / 2) + GroupPaddingX;
+        var maxY = children.Max(c => c.Pos.Y + c.H / 2) + GroupPaddingBottom;
+        return (minX, minY, maxX - minX, maxY - minY);
     }
 
     private static string MapNodeType(NodeShape shape) => shape switch
@@ -118,29 +118,23 @@ public sealed class ReactFlowRenderer : IJsonNetworkRenderer
         _ => "default"
     };
 
-    private static object NodeStyleDto(Node n, Theme theme)
+    private static object NodeStyleDto(Node n, Theme theme) => new
     {
-        var fill = n.Style?.Fill ?? theme.DefaultNodeFill;
-        var stroke = n.Style?.Stroke ?? theme.DefaultNodeStroke;
-        var label = n.Style?.LabelColor ?? theme.DefaultLabelColor;
-        return new
-        {
-            backgroundColor = fill.ToHex(),
-            borderColor = stroke.ToHex(),
-            borderWidth = n.Style?.StrokeWidth ?? 1.0,
-            color = label.ToHex(),
-            width = n.Style?.Width,
-            height = n.Style?.Height,
-            fontFamily = n.Style?.FontFamily ?? theme.DefaultFontFamily,
-            fontSize = n.Style?.FontSize ?? theme.DefaultFontSize,
-        };
-    }
+        backgroundColor = n.ResolvedFill(theme).ToHex(),
+        borderColor = n.ResolvedStroke(theme).ToHex(),
+        borderWidth = n.ResolvedStrokeWidth(),
+        color = n.ResolvedLabelColor(theme).ToHex(),
+        width = n.Style?.Width,
+        height = n.Style?.Height,
+        fontFamily = n.ResolvedFontFamily(theme),
+        fontSize = n.ResolvedFontSize(theme),
+    };
 
     private static object EdgeStyleDto(Edge e, Theme theme) => new
     {
-        stroke = (e.Style?.Stroke ?? theme.DefaultEdgeStroke).ToHex(),
-        strokeWidth = e.Style?.StrokeWidth ?? 1.0,
-        strokeDasharray = e.Style?.LineStyle switch
+        stroke = e.ResolvedStroke(theme).ToHex(),
+        strokeWidth = e.ResolvedStrokeWidth(),
+        strokeDasharray = e.ResolvedLineStyle() switch
         {
             LineStyle.Dashed => "6 4",
             LineStyle.Dotted => "2 3",
