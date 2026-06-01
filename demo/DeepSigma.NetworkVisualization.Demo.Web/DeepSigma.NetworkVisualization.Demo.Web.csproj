@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.ReactFlow\DeepSigma.NetworkVisualization.Renderers.ReactFlow.csproj" />
     <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.Cytoscape\DeepSigma.NetworkVisualization.Renderers.Cytoscape.csproj" />
     <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Renderers.D3\DeepSigma.NetworkVisualization.Renderers.D3.csproj" />
+    <ProjectReference Include="..\..\samples\DeepSigma.NetworkVisualization.Samples\DeepSigma.NetworkVisualization.Samples.csproj" />
   </ItemGroup>
 
 </Project>

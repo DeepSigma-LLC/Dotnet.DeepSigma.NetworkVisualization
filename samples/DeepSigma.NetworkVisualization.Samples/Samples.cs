@@ -1,9 +1,8 @@
-using DeepSigma.NetworkVisualization;
 using DeepSigma.NetworkVisualization.Builders;
 
-namespace DeepSigma.NetworkVisualization.Demo.Web;
+namespace DeepSigma.NetworkVisualization.Samples;
 
-public static class Samples
+public static class SampleNetworks
 {
     public static readonly IReadOnlyDictionary<string, Func<Network>> All = new Dictionary<string, Func<Network>>
     {

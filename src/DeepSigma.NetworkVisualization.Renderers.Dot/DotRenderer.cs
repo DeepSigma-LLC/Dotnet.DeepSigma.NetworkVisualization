@@ -6,7 +6,8 @@ namespace DeepSigma.NetworkVisualization.Renderers.Dot;
 
 public sealed class DotRenderer : INetworkRenderer<string>
 {
-    public string FormatId => "graphviz.dot";
+    public static RendererMetadata Metadata { get; } = new("dot", "text/plain");
+    public string FormatId => Metadata.FormatId;
 
     public string Render(Network network)
     {

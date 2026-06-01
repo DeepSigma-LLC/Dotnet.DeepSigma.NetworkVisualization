@@ -18,11 +18,12 @@ public sealed class SvgRenderer(SvgRenderOptions? options = null) : INetworkRend
 {
     private readonly SvgRenderOptions _opt = options ?? new SvgRenderOptions();
 
-    public string FormatId => "svg";
+    public static RendererMetadata Metadata { get; } = new("svg", "image/svg+xml", RequiresLayout: true);
+    public string FormatId => Metadata.FormatId;
 
     public string Render(Network network)
     {
-        var positioned = EnsureLayout(network);
+        var positioned = network.EnsureLayout(_opt.AutoLayoutIfMissing);
         var theme = positioned.Theme;
         var sb = new StringBuilder();
 
@@ -79,8 +80,6 @@ public sealed class SvgRenderer(SvgRenderOptions? options = null) : INetworkRend
         sb.AppendLine("</svg>");
         return sb.ToString();
     }
-
-    private Network EnsureLayout(Network network) => network.EnsureLayout(_opt.AutoLayoutIfMissing);
 
     private static void RenderEdge(StringBuilder sb, Edge e, (Node n, Position p, double w, double h) src, (Node n, Position p, double w, double h) dst, Theme theme, bool directed)
     {

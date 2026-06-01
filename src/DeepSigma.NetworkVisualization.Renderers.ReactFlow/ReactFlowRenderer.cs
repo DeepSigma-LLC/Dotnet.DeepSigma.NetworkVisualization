@@ -13,7 +13,8 @@ public sealed class ReactFlowRenderer : IJsonNetworkRenderer
     private const double DefaultNodeWidth = 100;
     private const double DefaultNodeHeight = 50;
 
-    public string FormatId => "reactflow";
+    public static RendererMetadata Metadata { get; } = new("reactflow", "application/json", RequiresLayout: true);
+    public string FormatId => Metadata.FormatId;
     public string FormatVersion => "1.0";
     public bool AutoLayoutIfMissing { get; init; } = true;
 

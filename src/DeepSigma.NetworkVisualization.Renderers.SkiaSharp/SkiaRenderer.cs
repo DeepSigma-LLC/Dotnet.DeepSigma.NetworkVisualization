@@ -19,11 +19,12 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
 {
     private readonly SkiaRenderOptions _opt = options ?? new SkiaRenderOptions();
 
-    public string FormatId => "skia.raster";
+    public static RendererMetadata Metadata { get; } = new("png", "image/png", RequiresLayout: true);
+    public string FormatId => Metadata.FormatId;
 
     public byte[] Render(Network network)
     {
-        var positioned = EnsureLayout(network);
+        var positioned = network.EnsureLayout(_opt.AutoLayoutIfMissing);
         var theme = positioned.Theme;
 
         var laidOut = positioned.Nodes
@@ -86,8 +87,6 @@ public sealed class SkiaRenderer(SkiaRenderOptions? options = null) : INetworkRe
         using var data = image.Encode(_opt.Format, _opt.Quality);
         return data.ToArray();
     }
-
-    private Network EnsureLayout(Network network) => network.EnsureLayout(_opt.AutoLayoutIfMissing);
 
     private static void DrawNode(SKCanvas canvas, Node n, Position p, double w, double h, Theme theme)
     {

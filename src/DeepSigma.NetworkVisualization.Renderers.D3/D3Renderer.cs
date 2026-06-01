@@ -6,7 +6,8 @@ namespace DeepSigma.NetworkVisualization.Renderers.D3;
 
 public sealed class D3Renderer : IJsonNetworkRenderer
 {
-    public string FormatId => "d3-force";
+    public static RendererMetadata Metadata { get; } = new("d3", "application/json");
+    public string FormatId => Metadata.FormatId;
     public string FormatVersion => "1.0";
 
     public string Render(Network network)
@@ -45,7 +46,7 @@ public sealed class D3Renderer : IJsonNetworkRenderer
 
         var payload = new
         {
-            format = FormatId,
+            format = "d3-force",
             version = FormatVersion,
             directed = network.Directed,
             theme = new

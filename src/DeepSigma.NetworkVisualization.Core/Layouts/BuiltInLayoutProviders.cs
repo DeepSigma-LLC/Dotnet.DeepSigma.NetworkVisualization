@@ -200,7 +200,9 @@ public static class LayoutProviders
         [LayoutAlgorithm.Hierarchical] = s => new TreeLayoutProvider { LevelGap = s.RankSpacing, SiblingGap = s.NodeSpacing },
         [LayoutAlgorithm.ForceDirected] = s => new SimpleForceDirectedLayoutProvider { Seed = s.RandomSeed ?? 42 },
         [LayoutAlgorithm.Sugiyama] = s => new TreeLayoutProvider { LevelGap = s.RankSpacing, SiblingGap = s.NodeSpacing },
+        // TODO: implement a real Radial layout. Falls back to force-directed for now.
         [LayoutAlgorithm.Radial] = s => new SimpleForceDirectedLayoutProvider { Seed = s.RandomSeed ?? 42 },
+        // MSAGL adapter overrides this entry with MsaglMdsLayoutProvider when MsaglLayouts.Register() is called.
         [LayoutAlgorithm.Mds] = s => new SimpleForceDirectedLayoutProvider { Seed = s.RandomSeed ?? 42 },
     };
 

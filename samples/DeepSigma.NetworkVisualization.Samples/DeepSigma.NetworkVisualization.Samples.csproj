@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Reusable sample networks (org chart, CI/CD pipeline, social network, service topology) built via the DeepSigma fluent builder.</Description>
+    <PackageId>DeepSigma.NetworkVisualization.Samples</PackageId>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DeepSigma.NetworkVisualization.Core\DeepSigma.NetworkVisualization.Core.csproj" />
+  </ItemGroup>
+
+</Project>

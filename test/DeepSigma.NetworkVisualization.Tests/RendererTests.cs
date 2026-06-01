@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DeepSigma.NetworkVisualization.Layout.Msagl;
 using DeepSigma.NetworkVisualization.Layouts;
+using DeepSigma.NetworkVisualization.Samples;
 using DeepSigma.NetworkVisualization.Renderers.Cytoscape;
 using DeepSigma.NetworkVisualization.Renderers.D3;
 using DeepSigma.NetworkVisualization.Renderers.Dot;
@@ -17,7 +18,7 @@ public class RendererTests
     [Fact]
     public void Mermaid_emits_flowchart_with_direction_nodes_and_edges()
     {
-        var output = new MermaidRenderer().Render(Samples.OrgChart());
+        var output = new MermaidRenderer().Render(SampleNetworks.OrgChart());
         Assert.Contains("flowchart TD", output, StringComparison.Ordinal);
         Assert.Contains("ceo", output, StringComparison.Ordinal);
         var flat = output.Replace("\r", "").Replace("\n", " ");
@@ -28,16 +29,16 @@ public class RendererTests
     [Fact]
     public void Dot_emits_digraph_with_clusters()
     {
-        var output = new DotRenderer().Render(Samples.Clusters());
+        var output = new DotRenderer().Render(SampleNetworks.Clusters());
         Assert.StartsWith("digraph", output, StringComparison.Ordinal);
         Assert.Contains("cluster_frontend", output, StringComparison.Ordinal);
-        Assert.Contains("\"api\" -> \"svc1\"", output, StringComparison.Ordinal);
+        Assert.Contains("\"gateway\" -> \"auth\"", output, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Svg_emits_well_formed_svg_with_nodes()
     {
-        var output = new SvgRenderer().Render(Samples.OrgChart());
+        var output = new SvgRenderer().Render(SampleNetworks.OrgChart());
         Assert.StartsWith("<?xml", output, StringComparison.Ordinal);
         Assert.Contains("<svg", output, StringComparison.Ordinal);
         Assert.Contains("</svg>", output, StringComparison.Ordinal);
@@ -47,7 +48,7 @@ public class RendererTests
     [Fact]
     public void Skia_emits_png_bytes()
     {
-        var bytes = new SkiaRenderer().Render(Samples.OrgChart());
+        var bytes = new SkiaRenderer().Render(SampleNetworks.OrgChart());
         Assert.NotEmpty(bytes);
         // PNG magic
         Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, bytes.Take(4).ToArray());
@@ -56,7 +57,7 @@ public class RendererTests
     [Fact]
     public void ReactFlow_emits_nodes_and_edges_with_positions()
     {
-        var json = new ReactFlowRenderer().Render(Samples.OrgChart());
+        var json = new ReactFlowRenderer().Render(SampleNetworks.OrgChart());
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
         Assert.Equal("reactflow", root.GetProperty("format").GetString());
@@ -67,7 +68,7 @@ public class RendererTests
     [Fact]
     public void Cytoscape_emits_elements_with_groups()
     {
-        var json = new CytoscapeRenderer().Render(Samples.Clusters());
+        var json = new CytoscapeRenderer().Render(SampleNetworks.Clusters());
         using var doc = JsonDocument.Parse(json);
         var nodes = doc.RootElement.GetProperty("elements").GetProperty("nodes");
         Assert.Contains(nodes.EnumerateArray(),
@@ -77,7 +78,7 @@ public class RendererTests
     [Fact]
     public void D3_emits_nodes_and_links_arrays()
     {
-        var json = new D3Renderer().Render(Samples.SocialNetwork());
+        var json = new D3Renderer().Render(SampleNetworks.SocialNetwork());
         using var doc = JsonDocument.Parse(json);
         Assert.Equal("d3-force", doc.RootElement.GetProperty("format").GetString());
         Assert.True(doc.RootElement.GetProperty("nodes").GetArrayLength() > 0);
@@ -87,7 +88,7 @@ public class RendererTests
     [Fact]
     public void Msagl_sugiyama_populates_positions()
     {
-        var net = Samples.Pipeline();
+        var net = SampleNetworks.Pipeline();
         var positioned = new MsaglSugiyamaLayoutProvider().ApplyLayout(net);
         Assert.All(positioned.Nodes, n => Assert.NotNull(n.Position));
     }
@@ -104,7 +105,7 @@ public class RendererTests
     [Fact]
     public void EnsureLayout_populates_positions_when_missing()
     {
-        var net = Samples.OrgChart();
+        var net = SampleNetworks.OrgChart();
         Assert.Contains(net.Nodes, n => !n.Position.HasValue);
         var positioned = net.EnsureLayout();
         Assert.All(positioned.Nodes, n => Assert.NotNull(n.Position));
@@ -113,8 +114,8 @@ public class RendererTests
     [Fact]
     public void EnsureLayout_throws_when_autoApply_is_false_and_positions_missing()
     {
-        var net = Samples.OrgChart();
-        Assert.Throws<InvalidOperationException>(() => net.EnsureLayout(autoApply: false));
+        var net = SampleNetworks.OrgChart();
+        Assert.Throws<InvalidOperationException>(() => { _ = net.EnsureLayout(autoApply: false); });
     }
 
     [Fact]

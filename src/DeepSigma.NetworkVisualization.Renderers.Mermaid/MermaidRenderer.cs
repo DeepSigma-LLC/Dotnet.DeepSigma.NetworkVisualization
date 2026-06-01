@@ -6,7 +6,8 @@ namespace DeepSigma.NetworkVisualization.Renderers.Mermaid;
 
 public sealed class MermaidRenderer : INetworkRenderer<string>
 {
-    public string FormatId => "mermaid";
+    public static RendererMetadata Metadata { get; } = new("mermaid", "text/plain");
+    public string FormatId => Metadata.FormatId;
 
     public string Render(Network network)
     {

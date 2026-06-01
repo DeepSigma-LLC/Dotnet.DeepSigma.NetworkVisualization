@@ -6,7 +6,8 @@ namespace DeepSigma.NetworkVisualization.Renderers.Cytoscape;
 
 public sealed class CytoscapeRenderer : IJsonNetworkRenderer
 {
-    public string FormatId => "cytoscape";
+    public static RendererMetadata Metadata { get; } = new("cytoscape", "application/json");
+    public string FormatId => Metadata.FormatId;
     public string FormatVersion => "1.0";
 
     public string Render(Network network)
